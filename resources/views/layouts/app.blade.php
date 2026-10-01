@@ -80,6 +80,66 @@
             {{-- Role Switcher --}}
             @if(isset($roleSwitcher))
                 {{ $roleSwitcher }}
+            @elseif(auth()->check() && !auth()->user()->is_super_admin)
+                @php
+                    $sekolahKode = session('sekolah_kode') ?? request()->route('kode');
+                    $rolesUser = auth()->user()->roles->pluck('role')->unique()->all();
+                    $activeRole = session('active_role', 'guru');
+                    $roleLabels = [
+                        'admin' => 'Admin Sekolah',
+                        'supervisor' => 'Supervisor',
+                        'guru' => 'Guru',
+                    ];
+                @endphp
+                @if(count($rolesUser) > 1 && $sekolahKode)
+                    <div class="relative" x-data="{ switcherBuka: false }">
+                        <button
+                            type="button"
+                            class="touch-target flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider text-white transition-colors"
+                            style="background-color: var(--color-navy-700); border: 1px solid rgba(255,255,255,0.2);"
+                            @click="switcherBuka = !switcherBuka"
+                            :aria-expanded="switcherBuka.toString()"
+                            aria-haspopup="true"
+                            aria-label="Ganti peran aktif saat ini"
+                            id="role-switcher-button"
+                        >
+                            <span class="w-2 h-2 rounded-full" style="background-color: var(--color-orange-500);"></span>
+                            <span>{{ $roleLabels[$activeRole] ?? ucfirst($activeRole) }}</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+
+                        <div
+                            x-show="switcherBuka"
+                            @click.outside="switcherBuka = false"
+                            class="absolute right-0 mt-2 w-48 rounded-xl shadow-xl py-1.5 z-50"
+                            style="background: #ffffff; border: 1px solid var(--color-border); display:none;"
+                        >
+                            <p class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                                Ganti Peran Aktif:
+                            </p>
+                            @foreach($rolesUser as $r)
+                                <form method="POST" action="{{ route('role.switch', ['kode' => $sekolahKode]) }}">
+                                    @csrf
+                                    <input type="hidden" name="role" value="{{ $r }}">
+                                    <button
+                                        type="submit"
+                                        class="w-full flex items-center justify-between px-3 py-2 text-sm text-left transition-colors hover:bg-gray-50 {{ $r === $activeRole ? 'font-bold bg-blue-50/50' : '' }}"
+                                        style="color: var(--color-ink);"
+                                    >
+                                        <span>{{ $roleLabels[$r] ?? ucfirst($r) }}</span>
+                                        @if($r === $activeRole)
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor" style="color: var(--color-action-green);">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                            </svg>
+                                        @endif
+                                    </button>
+                                </form>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
             @endif
 
             {{-- Menu pengguna --}}
@@ -95,10 +155,10 @@
                 >
                     <span class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold"
                           style="background-color: var(--color-navy-700);">
-                        {{ isset($user) ? substr($user->nama ?? 'U', 0, 1) : 'U' }}
+                        {{ auth()->check() ? substr(auth()->user()->nama ?? 'U', 0, 1) : 'U' }}
                     </span>
                     <span class="hidden sm:block text-sm font-medium max-w-[140px] truncate">
-                        {{ isset($user) ? ($user->nama ?? 'Pengguna') : 'Pengguna' }}
+                        {{ auth()->check() ? (auth()->user()->nama ?? 'Pengguna') : 'Pengguna' }}
                     </span>
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                         <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
@@ -117,23 +177,15 @@
                     x-transition:leave="transition ease-in duration-75"
                     x-transition:leave-start="opacity-100 scale-100"
                     x-transition:leave-end="opacity-0 scale-95"
-                    class="absolute right-0 mt-2 w-52 rounded-xl shadow-lg py-1"
-                    style="background: #ffffff; border: 1px solid var(--color-border); top: 100%;"
-                    style="display:none;"
+                    class="absolute right-0 mt-2 w-52 rounded-xl shadow-lg py-1 z-50"
+                    style="background: #ffffff; border: 1px solid var(--color-border); top: 100%; display:none;"
                 >
-                    <a href="{{ route('profile.edit', [], false) ?? '#' }}"
-                       role="menuitem"
-                       class="flex items-center gap-3 px-4 py-2.5 text-sm no-underline transition-colors hover:bg-gray-50"
-                       style="color: var(--color-ink);">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" style="color: var(--color-muted);">
-                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-                        </svg>
-                        Profil Saya
-                    </a>
+                    <div class="px-4 py-2 border-b" style="border-color: var(--color-border);">
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Sedang Masuk Sebagai</p>
+                        <p class="text-sm font-bold truncate" style="color: var(--color-navy-900);">{{ auth()->user()?->nama ?? 'Pengguna' }}</p>
+                    </div>
 
-                    <div style="border-top: 1px solid var(--color-border); margin: 4px 0;"></div>
-
-                    <form method="POST" action="{{ route('logout', [], false) ?? '#' }}">
+                    <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="submit" role="menuitem"
                                 class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors hover:bg-red-50"
@@ -185,11 +237,41 @@
                 {{-- Menu injected dari halaman --}}
                 {{ $nav ?? '' }}
 
-                {{-- Contoh default menu (akan diganti per-role nanti) --}}
+                {{-- Default menu berdasarkan role aktif bila $nav tidak diisi --}}
                 @unless(isset($nav))
-                    <x-nav-item href="{{ url('/') }}" :active="request()->is('/')">
-                        Beranda
-                    </x-nav-item>
+                    @if(auth()->check() && auth()->user()->is_super_admin)
+                        <x-nav-item href="{{ route('super-admin.dashboard') }}" :active="request()->routeIs('super-admin.dashboard')">
+                            Dasbor Super Admin
+                        </x-nav-item>
+                    @elseif(auth()->check())
+                        @php
+                            $kode = session('sekolah_kode') ?? request()->route('kode');
+                            $role = session('active_role', 'guru');
+                        @endphp
+                        @if($kode)
+                            @if($role === 'admin')
+                                <x-nav-item href="{{ route('dashboard.admin', ['kode' => $kode]) }}" :active="request()->routeIs('dashboard.admin')">
+                                    Dasbor Admin
+                                </x-nav-item>
+                            @elseif($role === 'supervisor')
+                                <x-nav-item href="{{ route('dashboard.supervisor', ['kode' => $kode]) }}" :active="request()->routeIs('dashboard.supervisor')">
+                                    Dasbor Supervisor
+                                </x-nav-item>
+                            @else
+                                <x-nav-item href="{{ route('dashboard.guru', ['kode' => $kode]) }}" :active="request()->routeIs('dashboard.guru')">
+                                    Dasbor Guru
+                                </x-nav-item>
+                            @endif
+                        @else
+                            <x-nav-item href="{{ url('/') }}" :active="request()->is('/')">
+                                Beranda
+                            </x-nav-item>
+                        @endif
+                    @else
+                        <x-nav-item href="{{ url('/') }}" :active="request()->is('/')">
+                            Beranda
+                        </x-nav-item>
+                    @endif
                 @endunless
             </div>
 

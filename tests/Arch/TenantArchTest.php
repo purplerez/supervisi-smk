@@ -89,7 +89,9 @@ test('setiap tabel database dengan kolom sekolah_id wajib dipetakan ke model den
 
     $checkedTables = 0;
 
-    foreach ($tables as $table) {
+    foreach ($tables as $rawTable) {
+        $table = str_contains($rawTable, '.') ? explode('.', $rawTable)[1] : $rawTable;
+
         if (in_array($table, $excludedTables, true)) {
             continue;
         }
@@ -97,16 +99,14 @@ test('setiap tabel database dengan kolom sekolah_id wajib dipetakan ke model den
         if (Schema::hasColumn($table, 'sekolah_id')) {
             $checkedTables++;
 
-            expect($modelMap)->toHaveKey(
-                $table,
+            expect(array_key_exists($table, $modelMap))->toBeTrue(
                 "Tabel database [{$table}] memiliki kolom sekolah_id tetapi belum dipetakan ke model Eloquent di app/Models."
             );
 
             $modelClass = $modelMap[$table];
             $traits = class_uses_recursive($modelClass);
 
-            expect($traits)->toContain(
-                BelongsToSekolah::class,
+            expect(in_array(BelongsToSekolah::class, $traits, true))->toBeTrue(
                 "Model [{$modelClass}] untuk tabel [{$table}] WAJIB menggunakan trait BelongsToSekolah."
             );
         }

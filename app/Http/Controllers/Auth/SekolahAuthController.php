@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class SekolahAuthController extends Controller
@@ -56,7 +55,7 @@ class SekolahAuthController extends Controller
 
         // 3. Rate limiting per kombinasi sekolah + username + IP
         $throttleKey = Str::transliterate(
-            'login:sekolah:' . $sekolah->id . '|' . strtolower($validated['username']) . '|' . $request->ip()
+            'login:sekolah:'.$sekolah->id.'|'.strtolower($validated['username']).'|'.$request->ip()
         );
 
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
@@ -128,7 +127,7 @@ class SekolahAuthController extends Controller
                 ->with('peringatan', 'Demi keamanan, Anda wajib mengganti kata sandi awal sebelum melanjutkan.');
         }
 
-        return redirect()->intended(route('dashboard.' . $defaultRole, ['kode' => $sekolah->kode]));
+        return redirect()->intended(route('dashboard.'.$defaultRole, ['kode' => $sekolah->kode]));
     }
 
     /**
@@ -172,7 +171,7 @@ class SekolahAuthController extends Controller
 
         $activeRole = session('active_role', 'guru');
 
-        return redirect()->route('dashboard.' . $activeRole, ['kode' => $sekolah->kode])
+        return redirect()->route('dashboard.'.$activeRole, ['kode' => $sekolah->kode])
             ->with('sukses', 'Kata sandi Anda berhasil diperbarui. Selamat datang di Aplikasi Supervisi!');
     }
 
@@ -194,12 +193,32 @@ class SekolahAuthController extends Controller
 
         // Pastikan pengguna benar-benar memiliki role tersebut
         if (! $user->hasRole($targetRole)) {
-            abort(403, 'Anda tidak memiliki hak akses sebagai ' . ucfirst($targetRole) . '.');
+            abort(403, 'Anda tidak memiliki hak akses sebagai '.ucfirst($targetRole).'.');
         }
 
         session(['active_role' => $targetRole]);
 
-        return redirect()->route('dashboard.' . $targetRole, ['kode' => $sekolah->kode])
-            ->with('sukses', 'Peran berhasil dialihkan ke: ' . ucfirst($targetRole));
+        return redirect()->route('dashboard.'.$targetRole, ['kode' => $sekolah->kode])
+            ->with('sukses', 'Peran berhasil dialihkan ke: '.ucfirst($targetRole));
+    }
+
+    /**
+     * Logout pengguna sekolah.
+     */
+    public function logout(Request $request): RedirectResponse
+    {
+        $sekolahKode = session('sekolah_kode') ?? $request->route('kode');
+
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        TenantContext::clear();
+
+        if ($sekolahKode) {
+            return redirect()->route('sekolah.login', ['kode' => $sekolahKode])
+                ->with('sukses', 'Anda telah berhasil keluar.');
+        }
+
+        return redirect()->to('/');
     }
 }
