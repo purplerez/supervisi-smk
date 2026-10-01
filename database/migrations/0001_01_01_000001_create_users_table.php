@@ -13,12 +13,22 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
+            $table->foreignId('sekolah_id')->nullable()->constrained('sekolah')->cascadeOnDelete();
+            $table->string('nama');
+            $table->string('username', 100)->nullable();
+            $table->string('email')->nullable();
             $table->string('password');
+            $table->string('nip', 30)->nullable();
+            $table->string('nuptk', 30)->nullable();
+            $table->boolean('must_change_password')->default(true);
+            $table->boolean('aktif')->default(true);
+            $table->boolean('is_super_admin')->default(false);
             $table->rememberToken();
             $table->timestamps();
+
+            // Constraint sesuai DESAIN 3.1:
+            $table->unique(['sekolah_id', 'username']);
+            $table->unique(['id', 'sekolah_id']);
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
@@ -42,8 +52,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('users');
-        Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
+        Schema::dropIfExists('password_reset_tokens');
+        Schema::dropIfExists('users');
     }
 };

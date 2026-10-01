@@ -1,4 +1,3 @@
-import './bootstrap';
 
 // === Alpine.js (di-bundle lokal, tanpa CDN) ===
 import Alpine from 'alpinejs';
