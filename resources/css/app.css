@@ -127,10 +127,12 @@
     .nav-item-inactive {
         border-left: 3px solid transparent;
         color: var(--color-muted);
+        background-color: transparent;
     }
     .nav-item-inactive:hover {
-        background-color: color-mix(in srgb, var(--color-navy-50) 50%, transparent);
+        background-color: color-mix(in srgb, var(--color-navy-50) 60%, transparent);
         color: var(--color-navy-700);
+        border-left-color: color-mix(in srgb, var(--color-orange-500) 30%, transparent);
     }
 
     /* Target klik minimal 44px */

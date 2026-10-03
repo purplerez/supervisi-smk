@@ -207,7 +207,12 @@ class SekolahAuthController extends Controller
      */
     public function logout(Request $request): RedirectResponse
     {
+        $sekolahId = session('sekolah_id');
         $sekolahKode = session('sekolah_kode') ?? $request->route('kode');
+
+        if ($sekolahId) {
+            TenantContext::set((int) $sekolahId);
+        }
 
         Auth::logout();
         $request->session()->invalidate();

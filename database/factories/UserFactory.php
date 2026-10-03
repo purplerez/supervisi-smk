@@ -132,4 +132,12 @@ class UserFactory extends Factory
     {
         return $this->supervisor()->guru();
     }
+
+    /**
+     * Alias untuk supervisorDanGuru.
+     */
+    public function supervisorGuru(): static
+    {
+        return $this->supervisorDanGuru();
+    }
 }

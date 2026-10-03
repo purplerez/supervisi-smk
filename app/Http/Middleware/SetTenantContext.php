@@ -58,6 +58,8 @@ class SetTenantContext
                         ->withErrors(['username' => 'Akun Anda tidak terdaftar di sekolah ini.']);
                 }
             }
+        } elseif ($request->hasSession() && $request->session()->has('sekolah_id')) {
+            TenantContext::set((int) $request->session()->get('sekolah_id'));
         } elseif (Auth::check()) {
             /** @var User $user */
             $user = Auth::user();

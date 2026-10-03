@@ -46,4 +46,20 @@ class Sekolah extends Model
     {
         return $this->hasMany(UserRole::class, 'sekolah_id');
     }
+
+    /**
+     * Apakah sekolah ini aktif.
+     */
+    public function isAktif(): bool
+    {
+        return $this->status === 'aktif';
+    }
+
+    /**
+     * URL login sekolah ini.
+     */
+    public function urlLogin(): string
+    {
+        return url("/s/{$this->kode}/login");
+    }
 }

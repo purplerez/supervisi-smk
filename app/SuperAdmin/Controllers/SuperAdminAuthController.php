@@ -33,43 +33,52 @@ class SuperAdminAuthController extends Controller
     {
         TenantContext::clear();
 
+        $loginInput = $request->input('login') ?: $request->input('email');
+        $isEmail = filter_var($loginInput, FILTER_VALIDATE_EMAIL);
+
+        $request->merge(['login' => $loginInput]);
+
         $validated = $request->validate([
-            'email' => ['required', 'email'],
+            'login' => ['required', 'string'],
             'password' => ['required', 'string'],
         ], [
-            'email.required' => 'Alamat email wajib diisi.',
-            'email.email' => 'Format email tidak valid.',
+            'login.required' => 'Username atau email wajib diisi.',
             'password.required' => 'Kata sandi wajib diisi.',
         ]);
 
         $throttleKey = Str::transliterate(
-            'login:superadmin:'.strtolower($validated['email']).'|'.$request->ip()
+            'login:superadmin:'.strtolower($validated['login']).'|'.$request->ip()
         );
 
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             $seconds = RateLimiter::availableIn($throttleKey);
 
-            return back()->withInput($request->only('email'))->withErrors([
-                'email' => sprintf('Terlalu banyak percobaan masuk yang gagal. Silakan coba lagi dalam %d detik.', $seconds),
+            return back()->withInput($request->only('login', 'email'))->withErrors([
+                'login' => sprintf('Terlalu banyak percobaan masuk yang gagal. Silakan coba lagi dalam %d detik.', $seconds),
             ]);
         }
 
         // Query super admin tanpa filter tenant (karena dipanggil dari namespace App\SuperAdmin\)
         $user = User::tanpaTenant()
-            ->where('email', $validated['email'])
+            ->where(function ($q) use ($validated) {
+                $q->where('username', $validated['login'])
+                    ->orWhere('email', $validated['login']);
+            })
             ->where('is_super_admin', true)
             ->first();
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
             RateLimiter::hit($throttleKey, 60);
 
-            return back()->withInput($request->only('email'))->withErrors([
-                'email' => 'Email atau kata sandi Super Admin tidak cocok.',
+            return back()->withInput($request->only('login', 'email'))->withErrors([
+                'login' => 'Username/email atau kata sandi Super Admin tidak cocok.',
+                'email' => 'Username/email atau kata sandi Super Admin tidak cocok.',
             ]);
         }
 
         if (! $user->aktif) {
-            return back()->withInput($request->only('email'))->withErrors([
+            return back()->withInput($request->only('login', 'email'))->withErrors([
+                'login' => 'Akun Super Admin ini telah dinonaktifkan.',
                 'email' => 'Akun Super Admin ini telah dinonaktifkan.',
             ]);
         }

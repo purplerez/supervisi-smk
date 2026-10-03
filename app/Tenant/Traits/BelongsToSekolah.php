@@ -2,6 +2,7 @@
 
 namespace App\Tenant\Traits;
 
+use App\Models\JenisInstrumen;
 use App\Models\Sekolah;
 use App\Models\User;
 use App\Tenant\Exceptions\TenantBypassDisallowedException;
@@ -11,20 +12,26 @@ use App\Tenant\TenantContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Scope;
 
 trait BelongsToSekolah
 {
     /**
      * Boot trait BelongsToSekolah.
-     * Mendaftarkan global scope SekolahScope dan hook creating.
+     * Mendaftarkan scope tenant (default: SekolahScope) dan hook creating.
      */
     public static function bootBelongsToSekolah(): void
     {
-        static::addGlobalScope(new SekolahScope);
+        static::addGlobalScope(static::getSekolahScope());
 
         static::creating(function (Model $model) {
             // Super admin tidak terikat pada sekolah manapun (sekolah_id = null)
             if ($model instanceof User && $model->is_super_admin) {
+                return;
+            }
+
+            // JenisInstrumen template global (sekolah_id = null) milik super-admin
+            if ($model instanceof JenisInstrumen && $model->sekolah_id === null) {
                 return;
             }
 
@@ -42,6 +49,23 @@ trait BelongsToSekolah
     }
 
     /**
+     * Dapatkan instance scope tenant yang digunakan model ini.
+     * Default: SekolahScope. Model khusus seperti JenisInstrumen me-override ini.
+     */
+    protected static function getSekolahScope(): Scope
+    {
+        return new SekolahScope;
+    }
+
+    /**
+     * Dapatkan nama class scope tenant yang digunakan model ini.
+     */
+    protected static function getSekolahScopeClass(): string
+    {
+        return get_class(static::getSekolahScope());
+    }
+
+    /**
      * Relasi ke model Sekolah.
      */
     public function sekolah(): BelongsTo
@@ -50,7 +74,7 @@ trait BelongsToSekolah
     }
 
     /**
-     * Satu-satunya jalan bypass scope tenant.
+     * Satu-satunya jalan bypass scope tenant (static).
      * HANYA boleh dipanggil dari namespace super-admin (App\SuperAdmin\).
      *
      * @throws TenantBypassDisallowedException bila dipanggil di luar namespace yang sah.
@@ -59,7 +83,19 @@ trait BelongsToSekolah
     {
         static::pastikanDipanggilDariSuperAdmin();
 
-        return static::withoutGlobalScope(SekolahScope::class);
+        return static::withoutGlobalScope(static::getSekolahScopeClass());
+    }
+
+    /**
+     * Scope untuk bypass tenant pada query builder / relasi.
+     *
+     * @throws TenantBypassDisallowedException bila dipanggil di luar namespace yang sah.
+     */
+    public function scopeTanpaTenant(Builder $query): Builder
+    {
+        static::pastikanDipanggilDariSuperAdmin();
+
+        return $query->withoutGlobalScope(static::getSekolahScopeClass());
     }
 
     /**
@@ -69,12 +105,13 @@ trait BelongsToSekolah
      */
     protected static function pastikanDipanggilDariSuperAdmin(): void
     {
-        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10);
+        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 30);
 
         $allowedNamespaces = [
             'App\\SuperAdmin\\',
             'Tests\\Feature\\SuperAdmin\\',
             'Tests\\Unit\\SuperAdmin\\',
+            'Database\\Seeders\\',
         ];
 
         $callerClass = null;
@@ -86,13 +123,10 @@ trait BelongsToSekolah
 
             $class = $frame['class'];
 
-            // Lewati internal trait dan framework Eloquent
+            // Lewati internal trait dan seluruh framework Illuminate
             if ($class === self::class
                 || $class === static::class
-                || is_subclass_of($class, Model::class)
-                || is_subclass_of($class, Builder::class)
-                || $class === 'Illuminate\\Database\\Eloquent\\Model'
-                || $class === 'Illuminate\\Database\\Eloquent\\Builder') {
+                || str_starts_with($class, 'Illuminate\\')) {
                 continue;
             }
 

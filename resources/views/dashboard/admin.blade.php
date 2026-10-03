@@ -51,10 +51,25 @@
         </x-card>
     </div>
 
-    <x-card class="p-6">
-        <h2 class="text-lg font-bold mb-2" style="color: var(--color-navy-900);">Informasi Panel Admin</h2>
-        <p class="text-sm leading-relaxed" style="color: var(--color-ink);">
-            Modul administrasi guru, periode supervisi, dan penugasan penilai akan aktif pada tahap selanjutnya.
-        </p>
-    </x-card>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <x-card class="p-6">
+            <h2 class="text-lg font-bold mb-2" style="color: var(--color-navy-900);">Manajemen Guru & Pengguna</h2>
+            <p class="text-sm leading-relaxed text-gray-600 mb-4">
+                Kelola akun guru, penetapan peran supervisor (penilai), dan kepala sekolah di {{ $sekolah->nama }}.
+            </p>
+            <x-button variant="primary" :href="route('admin.guru.index', ['kode' => $sekolah->kode])">
+                Buka Data Guru & Pengguna &rarr;
+            </x-button>
+        </x-card>
+
+        <x-card class="p-6">
+            <h2 class="text-lg font-bold mb-2" style="color: var(--color-navy-900);">Impor Data Guru (Excel)</h2>
+            <p class="text-sm leading-relaxed text-gray-600 mb-4">
+                Unggah data guru secara massal menggunakan file Excel dengan alur 3 langkah dan validasi dry run.
+            </p>
+            <x-button variant="tambah" :href="route('admin.guru.import', ['kode' => $sekolah->kode])">
+                Buka Impor Excel &rarr;
+            </x-button>
+        </x-card>
+    </div>
 </x-app-layout>

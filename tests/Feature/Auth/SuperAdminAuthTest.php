@@ -1,10 +1,12 @@
 <?php
 
+use App\Livewire\SuperAdmin\SekolahManager;
 use App\Models\Sekolah;
 use App\Models\User;
 use App\Tenant\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Livewire\Livewire;
 use Tests\Traits\InteractsWithTenants;
 
 uses(RefreshDatabase::class, InteractsWithTenants::class);
@@ -76,4 +78,42 @@ test('logout super admin berhasil membersihkan sesi', function () {
     $response->assertRedirect(route('super-admin.login'));
     $this->assertGuest();
     expect(TenantContext::get())->toBeNull();
+});
+
+test('super admin dapat mengakses dasbor pada request baru dengan TenantContext kosong di awal', function () {
+    $superAdmin = User::factory()->superAdmin()->create();
+
+    $this->actingAs($superAdmin);
+
+    // Simulasikan request HTTP baru di mana TenantContext belum terisi
+    TenantContext::clear();
+    expect(TenantContext::get())->toBeNull();
+
+    $response = $this->get(route('super-admin.dashboard'));
+
+    $response->assertOk();
+    $response->assertSee('Dasbor Super Admin');
+});
+
+test('logout super admin berhasil saat TenantContext kosong di awal request', function () {
+    $superAdmin = User::factory()->superAdmin()->create();
+
+    $this->actingAs($superAdmin);
+
+    TenantContext::clear();
+    expect(TenantContext::get())->toBeNull();
+
+    $response = $this->post(route('super-admin.logout'));
+
+    $response->assertRedirect(route('super-admin.login'));
+    $this->assertGuest();
+});
+
+test('komponen SekolahManager dapat dirender dengan sukses', function () {
+    $superAdmin = User::factory()->superAdmin()->create();
+    $this->actingAs($superAdmin);
+
+    Livewire::test(SekolahManager::class)
+        ->assertOk()
+        ->assertSee('Tambah Sekolah');
 });

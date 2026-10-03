@@ -32,9 +32,9 @@
             </div>
         @endif
 
-        @if($errors->has('email'))
+        @if($errors->has('login') || $errors->has('email'))
             <div class="mb-4">
-                <x-alert-banner type="galat">{{ $errors->first('email') }}</x-alert-banner>
+                <x-alert-banner type="galat">{{ $errors->first('login') ?: $errors->first('email') }}</x-alert-banner>
             </div>
         @endif
 
@@ -43,15 +43,15 @@
             <form method="POST" action="{{ route('super-admin.login.post') }}" class="space-y-5" novalidate>
                 @csrf
 
-                {{-- Input Email --}}
+                {{-- Input Username / Email --}}
                 <x-input
-                    name="email"
-                    label="Alamat Email"
-                    type="email"
-                    autocomplete="email"
-                    :value="old('email')"
+                    name="login"
+                    label="Username atau Alamat Email"
+                    type="text"
+                    autocomplete="username"
+                    :value="old('login') ?: old('email')"
                     required
-                    placeholder="nama@domain.com"
+                    placeholder="superadmin atau nama@domain.com"
                     autofocus
                 />
 

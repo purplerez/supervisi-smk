@@ -245,3 +245,21 @@ test('logout berhasil membersihkan session dan tenant context', function () {
     $this->assertGuest();
     expect(TenantContext::get())->toBeNull();
 });
+
+test('logout berhasil saat request peramban baru dengan TenantContext kosong di awal', function () {
+    $sekolah = Sekolah::factory()->create();
+    $this->actingAsSekolah($sekolah, 'guru');
+
+    // Simulasikan awal request HTTP baru: TenantContext kosong di memori PHP
+    TenantContext::clear();
+    expect(TenantContext::get())->toBeNull();
+
+    $response = $this->withSession([
+        'sekolah_id' => $sekolah->id,
+        'sekolah_kode' => $sekolah->kode,
+    ])->post(route('logout'));
+
+    $response->assertRedirect(route('sekolah.login', ['kode' => $sekolah->kode]));
+    $this->assertGuest();
+    expect(TenantContext::get())->toBeNull();
+});

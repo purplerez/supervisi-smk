@@ -2,7 +2,16 @@
     <x-page-header
         title="Dasbor Super Admin"
         subtitle="Manajemen dan pemantauan lintas sekolah."
-    />
+    >
+        <x-slot:actions>
+            <x-button variant="tambah" href="{{ route('super-admin.sekolah.create') }}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                </svg>
+                Tambah Sekolah
+            </x-button>
+        </x-slot:actions>
+    </x-page-header>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <x-card class="p-6">
@@ -21,26 +30,5 @@
         </x-card>
     </div>
 
-    <x-card class="p-6">
-        <h2 class="text-lg font-bold mb-4" style="color: var(--color-navy-900);">Daftar Sekolah Terbaru</h2>
-        @if($sekolahList->isEmpty())
-            <x-empty-state
-                title="Belum ada sekolah terdaftar"
-                description="Tambahkan sekolah baru untuk memulai sistem supervisi multi-tenant."
-            />
-        @else
-            <x-table :headers="['Nama Sekolah', 'Kode', 'NPSN', 'Status']">
-                @foreach($sekolahList as $s)
-                    <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="font-semibold text-gray-900">{{ $s->nama }}</td>
-                        <td class="font-mono text-xs">{{ $s->kode }}</td>
-                        <td>{{ $s->npsn ?? '-' }}</td>
-                        <td>
-                            <x-badge-status :status="$s->status === 'aktif' ? 'final' : 'belum'" :label="ucfirst($s->status)"/>
-                        </td>
-                    </tr>
-                @endforeach
-            </x-table>
-        @endif
-    </x-card>
+    <livewire:super-admin.sekolah-manager />
 </x-app-layout>

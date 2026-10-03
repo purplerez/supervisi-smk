@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\SuperAdmin\Auth\SuperAdminUserProvider;
 use App\Tenant\TenantContext;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -22,6 +24,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Auth::provider('multitenant-eloquent', function ($app, array $config) {
+            return new SuperAdminUserProvider($app['hash'], $config['model']);
+        });
     }
 }

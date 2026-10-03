@@ -98,4 +98,28 @@ class User extends Authenticatable
             'role' => $role,
         ]);
     }
+
+    /**
+     * Relasi ke penugasan di mana user ini adalah guru yang disupervisi.
+     */
+    public function penugasanSebagaiGuru(): HasMany
+    {
+        return $this->hasMany(Penugasan::class, 'guru_id');
+    }
+
+    /**
+     * Relasi ke penugasan di mana user ini adalah supervisor / penilai.
+     */
+    public function penugasanSebagaiPenilai(): HasMany
+    {
+        return $this->hasMany(Penugasan::class, 'penilai_id');
+    }
+
+    /**
+     * Relasi ke surat tugas yang ditugaskan ke user ini sebagai penilai.
+     */
+    public function suratTugasSebagaiPenilai(): HasMany
+    {
+        return $this->hasMany(SuratTugas::class, 'penilai_id');
+    }
 }
