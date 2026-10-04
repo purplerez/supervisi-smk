@@ -365,6 +365,215 @@ class SuratTugasService
     }
 
     /**
+     * Buat file DOCX untuk surat tugas / SK kolektif seluruh observer dan guru pada periode tertentu.
+     * Mengembalikan path absolut file temporary yang harus dihapus setelah dikirim.
+     *
+     * @param  array{
+     *     nomor_surat: string,
+     *     tanggal_surat: string,
+     *     lampiran_judul?: ?string,
+     *     judul_kegiatan?: ?string,
+     *     penandatangan_nama: string,
+     *     penandatangan_nip?: ?string,
+     *     penandatangan_jabatan?: ?string,
+     *     penandatangan_pangkat?: ?string,
+     *     kota?: ?string
+     * }  $data
+     */
+    public function buatDokumenKolektifDocx(Periode $periode, array $data): string
+    {
+        $periode->loadMissing('sekolah');
+        $sekolah = $periode->sekolah;
+
+        $penugasanGrouped = Penugasan::where('periode_id', $periode->id)
+            ->with(['guru', 'penilai', 'infoSupervisi'])
+            ->get()
+            ->groupBy('penilai_id')
+            ->sortBy(fn ($group) => $group->first()?->penilai?->nama ?? '');
+
+        if ($penugasanGrouped->isEmpty()) {
+            throw ValidationException::withMessages([
+                'periode_id' => 'Belum ada penugasan guru dan supervisor pada periode yang dipilih.',
+            ]);
+        }
+
+        $phpWord = new PhpWord;
+        $phpWord->setDefaultFontName('Times New Roman');
+        $phpWord->setDefaultFontSize(10);
+
+        // Konfigurasi Halaman A4 Portrait
+        $section = $phpWord->addSection([
+            'paperSize' => 'A4',
+            'marginTop' => 850,    // 1.5 cm
+            'marginBottom' => 850, // 1.5 cm
+            'marginLeft' => 850,   // 1.5 cm
+            'marginRight' => 850,  // 1.5 cm
+        ]);
+
+        $tglSuratFormatted = Carbon::parse($data['tanggal_surat'])->locale('id')->isoFormat('D MMMM Y');
+        $tahunTeks = $periode->tahun_ajaran ?: date('Y');
+        $lampiranJudul = ! empty($data['lampiran_judul'])
+            ? $data['lampiran_judul']
+            : "SK Tim Pelaksana Penilaian Pengelolaan Kinerja Guru Tahun {$tahunTeks}";
+
+        // === 1. HEADER LAMPIRAN KANAN ATAS / KIRI ATAS ===
+        $metaTable = $section->addTable([
+            'alignment' => JcTable::START,
+            'unit' => TblWidth::PERCENT,
+            'width' => 100 * 50,
+        ]);
+
+        $r1 = $metaTable->addRow(220);
+        $r1->addCell(1300)->addText('Lampiran', ['size' => 9.5], ['spaceAfter' => 0]);
+        $r1->addCell(200)->addText(':', ['size' => 9.5], ['spaceAfter' => 0]);
+        $r1->addCell(8500)->addText($lampiranJudul, ['size' => 9.5, 'bold' => true], ['spaceAfter' => 0]);
+
+        $r2 = $metaTable->addRow(220);
+        $r2->addCell(1300)->addText('Nomor', ['size' => 9.5], ['spaceAfter' => 0]);
+        $r2->addCell(200)->addText(':', ['size' => 9.5], ['spaceAfter' => 0]);
+        $r2->addCell(8500)->addText($data['nomor_surat'], ['size' => 9.5], ['spaceAfter' => 0]);
+
+        $r3 = $metaTable->addRow(220);
+        $r3->addCell(1300)->addText('Tanggal', ['size' => 9.5], ['spaceAfter' => 0]);
+        $r3->addCell(200)->addText(':', ['size' => 9.5], ['spaceAfter' => 0]);
+        $r3->addCell(8500)->addText($tglSuratFormatted, ['size' => 9.5], ['spaceAfter' => 0]);
+
+        $section->addTextBreak(1);
+
+        // === 2. JUDUL DOKUMEN ===
+        $sekolahNamaUpper = mb_strtoupper($sekolah->nama ?? 'SEKOLAH');
+
+        $section->addText(
+            'TIM PENGAMAT (OBSERVER)',
+            ['name' => 'Times New Roman', 'size' => 11.5, 'bold' => true],
+            ['alignment' => Jc::CENTER, 'spaceAfter' => 20]
+        );
+        $section->addText(
+            'PRAKTIK PEMBELAJARAN DAN PENGELOLAAN KINERJA GURU',
+            ['name' => 'Times New Roman', 'size' => 11.5, 'bold' => true],
+            ['alignment' => Jc::CENTER, 'spaceAfter' => 20]
+        );
+        $section->addText(
+            "DI {$sekolahNamaUpper} TAHUN {$tahunTeks}",
+            ['name' => 'Times New Roman', 'size' => 11.5, 'bold' => true],
+            ['alignment' => Jc::CENTER, 'spaceAfter' => 120]
+        );
+
+        // === 3. TABEL MATRIKS TIM OBSERVER & GURU ===
+        $table = $section->addTable([
+            'alignment' => JcTable::CENTER,
+            'borderSize' => 6,
+            'borderColor' => '000000',
+            'unit' => TblWidth::PERCENT,
+            'width' => 100 * 50,
+        ]);
+
+        // Header Tabel
+        $table->addRow(380, ['tblHeader' => true, 'cantSplit' => true]);
+        $headerBg = 'FCE5CD'; // Warna peach/krem lembut seperti dokumen fisik
+        $cellHAlign = ['alignment' => Jc::CENTER, 'spaceAfter' => 0];
+
+        $table->addCell(600, ['bgColor' => $headerBg, 'valign' => 'center'])->addText('NO', ['bold' => true, 'size' => 9], $cellHAlign);
+        $table->addCell(2500, ['bgColor' => $headerBg, 'valign' => 'center'])->addText('NAMA OBSERVER', ['bold' => true, 'size' => 9], $cellHAlign);
+        $table->addCell(500, ['bgColor' => $headerBg, 'valign' => 'center'])->addText('NO', ['bold' => true, 'size' => 9], $cellHAlign);
+        $table->addCell(2800, ['bgColor' => $headerBg, 'valign' => 'center'])->addText('NAMA PTK', ['bold' => true, 'size' => 9], $cellHAlign);
+        $table->addCell(2100, ['bgColor' => $headerBg, 'valign' => 'center'])->addText('NIP', ['bold' => true, 'size' => 9], $cellHAlign);
+        $table->addCell(1800, ['bgColor' => $headerBg, 'valign' => 'center'])->addText('GURU MAPEL', ['bold' => true, 'size' => 9], $cellHAlign);
+
+        // Baris-baris Observer dan Guru
+        $observerNo = 1;
+        foreach ($penugasanGrouped as $penilaiId => $guruItems) {
+            $penilai = $guruItems->first()?->penilai;
+            if (! $penilai) {
+                continue;
+            }
+
+            $guruList = $guruItems->sortBy(fn ($p) => $p->guru?->nama ?? '')->values();
+
+            foreach ($guruList as $gIdx => $penugasanItem) {
+                $guru = $penugasanItem->guru;
+                $nipTeks = ! empty($guru->nip) ? $guru->nip : (! empty($guru->nuptk) ? $guru->nuptk : '-');
+                $mapelTeks = $penugasanItem->infoSupervisi?->mata_pelajaran ?: '-';
+
+                $table->addRow(260, ['cantSplit' => true]);
+
+                if ($gIdx === 0) {
+                    // Baris pertama observer ini: restart merge
+                    $table->addCell(600, ['vMerge' => 'restart', 'valign' => 'center'])
+                        ->addText((string) $observerNo, ['bold' => true, 'size' => 9], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
+                    $table->addCell(2500, ['vMerge' => 'restart', 'valign' => 'center'])
+                        ->addText($penilai->nama, ['bold' => true, 'size' => 9], ['alignment' => Jc::LEFT, 'spaceAfter' => 0]);
+                } else {
+                    // Baris kedua dst: continue merge
+                    $table->addCell(600, ['vMerge' => 'continue']);
+                    $table->addCell(2500, ['vMerge' => 'continue']);
+                }
+
+                $table->addCell(500, ['valign' => 'center'])
+                    ->addText((string) ($gIdx + 1), ['size' => 9], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
+                $table->addCell(2800, ['valign' => 'center'])
+                    ->addText($guru->nama ?? '-', ['size' => 9], ['alignment' => Jc::LEFT, 'spaceAfter' => 0]);
+                $table->addCell(2100, ['valign' => 'center'])
+                    ->addText($nipTeks, ['size' => 8.5], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
+                $table->addCell(1800, ['valign' => 'center'])
+                    ->addText($mapelTeks, ['size' => 8.5], ['alignment' => Jc::LEFT, 'spaceAfter' => 0]);
+            }
+
+            $observerNo++;
+        }
+
+        $section->addTextBreak(1);
+
+        // === 4. BLOK TANDA TANGAN KEPALA SEKOLAH ===
+        $kota = ! empty($data['kota']) ? $data['kota'] : 'Banyuwangi';
+        $jabatan = ! empty($data['penandatangan_jabatan']) ? $data['penandatangan_jabatan'] : ("Kepala {$sekolah->nama}");
+        $namaKepsek = $data['penandatangan_nama'];
+        $pangkat = $data['penandatangan_pangkat'] ?? null;
+        $nipKepsek = $data['penandatangan_nip'] ?? null;
+
+        $ttdTable = $section->addTable([
+            'alignment' => JcTable::CENTER,
+            'unit' => TblWidth::PERCENT,
+            'width' => 100 * 50,
+        ]);
+        $ttdRow = $ttdTable->addRow();
+        $ttdRow->addCell(5200); // spacer kiri
+        $ttdCell = $ttdRow->addCell(4800); // blok TTD kanan
+
+        $ttdCell->addText("{$kota}, {$tglSuratFormatted}", ['size' => 10], ['spaceAfter' => 20]);
+        $ttdCell->addText($jabatan, ['size' => 10], ['spaceAfter' => 500]); // Ruang untuk cap dan tanda tangan
+        $ttdCell->addText($namaKepsek, ['bold' => true, 'underline' => 'single', 'size' => 10], ['spaceAfter' => 20]);
+        if (! empty($pangkat)) {
+            $ttdCell->addText($pangkat, ['size' => 9], ['spaceAfter' => 20]);
+        }
+        if (! empty($nipKepsek)) {
+            $ttdCell->addText("NIP. {$nipKepsek}", ['size' => 9], ['spaceAfter' => 0]);
+        }
+
+        // === 5. FOOTER DOKUMEN ===
+        $footer = $section->addFooter();
+        $footerTable = $footer->addTable([
+            'alignment' => JcTable::CENTER,
+            'unit' => TblWidth::PERCENT,
+            'width' => 100 * 50,
+        ]);
+        $footerRow = $footerTable->addRow();
+        $footerLeft = $footerRow->addCell(5000);
+        $footerLeft->addText('Form.  : F.3.0 - 02', ['size' => 7.5, 'italic' => true, 'color' => '666666'], ['spaceAfter' => 0]);
+        $footerLeft->addText("Tgl.    : {$tglSuratFormatted}", ['size' => 7.5, 'italic' => true, 'color' => '666666'], ['spaceAfter' => 0]);
+
+        $footerRight = $footerRow->addCell(5000);
+        $footerRight->addText('Revisi : 00', ['size' => 7.5, 'italic' => true, 'color' => '666666'], ['alignment' => Jc::RIGHT, 'spaceAfter' => 0]);
+
+        // Simpan ke temporary file
+        $tempFile = tempnam(sys_get_temp_dir(), 'surat_tugas_kolektif_');
+        $writer = IOFactory::createWriter($phpWord, 'Word2007');
+        $writer->save($tempFile);
+
+        return $tempFile;
+    }
+
+    /**
      * Helper untuk membuat baris pada tabel identitas supervisor.
      */
     protected function tambahBarisIdentitas(Table $table, string $label, string $nilai): void

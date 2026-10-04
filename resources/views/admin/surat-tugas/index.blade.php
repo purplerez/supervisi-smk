@@ -93,9 +93,10 @@
             </x-empty-state>
         </x-card>
     @else
-        {{-- Kontainer Utama dengan Alpine.js untuk Modal Penerbitan --}}
+        {{-- Kontainer Utama dengan Alpine.js untuk Modal Penerbitan & Unduh Kolektif --}}
         <div x-data="{
             modalTerbitkan: false,
+            modalKolektif: false,
             penilaiId: null,
             penilaiNama: '',
             penilaiNip: '',
@@ -106,6 +107,16 @@
             penandatanganJabatan: 'Kepala Sekolah',
             guruList: [],
             isUlang: false,
+
+            // Data untuk Surat Tugas / SK Kolektif Seluruh Observer
+            kolektifNomorSurat: '400.3/ 002 /101.6.7.18/{{ date('Y') }}',
+            kolektifTanggalSurat: '{{ date('Y-m-d') }}',
+            kolektifLampiranJudul: 'SK Tim Pelaksana Penilaian Pengelolaan Kinerja Guru Tahun {{ $periode?->tahun_ajaran ?? date('Y') }}',
+            kolektifPenandatanganNama: @js($kepalaSekolah?->nama ?? ''),
+            kolektifPenandatanganNip: @js($kepalaSekolah?->nip ?? ''),
+            kolektifPenandatanganJabatan: @js('Kepala ' . $sekolah->nama),
+            kolektifPenandatanganPangkat: 'Pembina Utama Muda, IV/c',
+            kolektifKota: 'Banyuwangi',
 
             bukaModal(penilai, guruList, suratTugas, isUlang = false) {
                 this.penilaiId = penilai.id;
@@ -129,6 +140,10 @@
                 }
 
                 this.modalTerbitkan = true;
+            },
+
+            bukaModalKolektif() {
+                this.modalKolektif = true;
             }
         }">
             {{-- Tabel Daftar Penilai & Surat Tugas --}}
@@ -139,8 +154,22 @@
                             Daftar Surat Tugas Supervisor ({{ $daftarPenilai->count() }})
                         </h2>
                         <p class="text-xs" style="color: var(--color-muted);">
-                            Setiap supervisor dapat diterbitkan satu surat tugas resmi yang memuat seluruh guru binaannya.
+                            Kelola surat tugas supervisi per-supervisor atau unduh SK Tim Pengamat (Observer) kolektif untuk seluruh guru.
                         </p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button
+                            type="button"
+                            @click="bukaModalKolektif()"
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm transition-all hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-offset-2"
+                            style="background-color: var(--color-navy-900);"
+                            title="Unduh SK Tim Observer / Surat Tugas Kolektif untuk seluruh guru dan observer dalam satu dokumen"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                            </svg>
+                            Unduh SK Kolektif (Semua Guru & Observer)
+                        </button>
                     </div>
                 </div>
 
@@ -496,6 +525,232 @@
                                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                     </svg>
                                     <span x-text="isUlang ? 'Simpan & Terbitkan Ulang' : 'Simpan & Terbitkan Surat'"></span>
+                                </x-button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Modal Unduh Dokumen SK / Surat Tugas Kolektif --}}
+            <div
+                x-show="modalKolektif"
+                class="fixed inset-0 z-50 overflow-y-auto"
+                style="display: none;"
+                aria-labelledby="modal-kolektif-title"
+                role="dialog"
+                aria-modal="true"
+            >
+                {{-- Backdrop --}}
+                <div
+                    x-show="modalKolektif"
+                    x-transition:enter="ease-out duration-200"
+                    x-transition:enter-start="opacity-0"
+                    x-transition:enter-end="opacity-100"
+                    x-transition:leave="ease-in duration-150"
+                    x-transition:leave-start="opacity-100"
+                    x-transition:leave-end="opacity-0"
+                    class="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity"
+                    @click="modalKolektif = false"
+                ></div>
+
+                <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                    <div
+                        x-show="modalKolektif"
+                        x-transition:enter="ease-out duration-200"
+                        x-transition:enter-start="opacity-0 translate-y-4 sm:scale-95"
+                        x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                        x-transition:leave="ease-in duration-150"
+                        x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                        x-transition:leave-end="opacity-0 translate-y-4 sm:scale-95"
+                        class="relative transform overflow-hidden rounded-2xl text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-2xl"
+                        style="background: #ffffff; border: 1px solid var(--color-border);"
+                    >
+                        {{-- Form Unduh Kolektif (POST) --}}
+                        <form
+                            action="{{ route('admin.surat-tugas.unduh-kolektif', ['kode' => $sekolah->kode, 'periode' => $periode->id]) }}"
+                            method="POST"
+                        >
+                            @csrf
+
+                            {{-- Modal Header --}}
+                            <div class="px-6 py-4 border-b flex items-center justify-between" style="border-color: var(--color-border); background-color: var(--color-navy-50);">
+                                <div>
+                                    <h3 class="text-lg font-bold" id="modal-kolektif-title" style="color: var(--color-navy-900);">
+                                        Unduh SK Kolektif Tim Observer
+                                    </h3>
+                                    <p class="text-xs" style="color: var(--color-muted);">
+                                        Format matriks resmi: memuat seluruh supervisor & guru binaan dalam satu dokumen DOCX.
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    @click="modalKolektif = false"
+                                    class="p-1 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            {{-- Modal Body --}}
+                            <div class="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+                                <div class="p-3 rounded-lg border border-blue-200 bg-blue-50/70 text-xs text-blue-900 flex items-start gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor" class="shrink-0 mt-0.5 text-blue-700">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <div>
+                                        Dokumen ini akan merangkum <strong>{{ $daftarPenilai->count() }} Observer</strong> beserta seluruh guru yang ditugaskan pada periode <strong>{{ $periode->nama }}</strong> ke dalam tabel berjenjang resmi (DOCX).
+                                    </div>
+                                </div>
+
+                                {{-- Judul Lampiran SK --}}
+                                <div>
+                                    <label for="kolektif_lampiran_judul" class="block text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-navy-900);">
+                                        Judul Lampiran SK
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="kolektif_lampiran_judul"
+                                        name="lampiran_judul"
+                                        x-model="kolektifLampiranJudul"
+                                        placeholder="SK Tim Pelaksana Penilaian Pengelolaan Kinerja Guru Tahun {{ date('Y') }}"
+                                        class="form-input text-sm w-full"
+                                    />
+                                    <p class="text-[11px] text-gray-500 mt-1">Teks lampiran yang tercetak di sudut kanan/kiri atas dokumen.</p>
+                                </div>
+
+                                {{-- Nomor Surat & Tanggal Surat --}}
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="kolektif_nomor_surat" class="block text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-navy-900);">
+                                            Nomor Surat / SK <span class="text-red-600">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            id="kolektif_nomor_surat"
+                                            name="nomor_surat"
+                                            x-model="kolektifNomorSurat"
+                                            required
+                                            placeholder="Contoh: 400.3/ 002 /101.6.7.18/{{ date('Y') }}"
+                                            class="form-input text-sm w-full"
+                                        />
+                                        <p class="text-[11px] text-gray-500 mt-1">Nomor resmi SK Tim Pelaksana / Supervisi.</p>
+                                    </div>
+
+                                    <div>
+                                        <label for="kolektif_tanggal_surat" class="block text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-navy-900);">
+                                            Tanggal SK / Surat <span class="text-red-600">*</span>
+                                        </label>
+                                        <input
+                                            type="date"
+                                            id="kolektif_tanggal_surat"
+                                            name="tanggal_surat"
+                                            x-model="kolektifTanggalSurat"
+                                            required
+                                            class="form-input text-sm w-full"
+                                        />
+                                        <p class="text-[11px] text-gray-500 mt-1">Tanggal penetapan SK.</p>
+                                    </div>
+                                </div>
+
+                                {{-- Kota Penetapan --}}
+                                <div>
+                                    <label for="kolektif_kota" class="block text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-navy-900);">
+                                        Kota / Tempat Penetapan
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="kolektif_kota"
+                                        name="kota"
+                                        x-model="kolektifKota"
+                                        placeholder="Contoh: Banyuwangi / Surabaya"
+                                        class="form-input text-sm w-full"
+                                    />
+                                </div>
+
+                                {{-- Identitas Kepala Sekolah / Penandatangan --}}
+                                <div class="p-4 rounded-xl border space-y-3" style="border-color: var(--color-border); background-color: var(--color-cream);">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--color-navy-900);">
+                                            Penandatangan Dokumen
+                                        </span>
+                                        <span class="text-[11px] text-gray-500 italic">
+                                            (Profil Kepala Sekolah)
+                                        </span>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div>
+                                            <label for="kolektif_penandatangan_nama" class="block text-xs font-semibold mb-1 text-gray-700">
+                                                Nama Lengkap <span class="text-red-600">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                id="kolektif_penandatangan_nama"
+                                                name="penandatangan_nama"
+                                                x-model="kolektifPenandatanganNama"
+                                                required
+                                                class="form-input text-sm w-full"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label for="kolektif_penandatangan_pangkat" class="block text-xs font-semibold mb-1 text-gray-700">
+                                                Pangkat / Golongan (Opsional)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                id="kolektif_penandatangan_pangkat"
+                                                name="penandatangan_pangkat"
+                                                x-model="kolektifPenandatanganPangkat"
+                                                placeholder="Contoh: Pembina Utama Muda, IV/c"
+                                                class="form-input text-sm w-full"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label for="kolektif_penandatangan_nip" class="block text-xs font-semibold mb-1 text-gray-700">
+                                                NIP Penandatangan (Opsional)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                id="kolektif_penandatangan_nip"
+                                                name="penandatangan_nip"
+                                                x-model="kolektifPenandatanganNip"
+                                                placeholder="Kosongkan jika bukan ASN"
+                                                class="form-input text-sm w-full"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label for="kolektif_penandatangan_jabatan" class="block text-xs font-semibold mb-1 text-gray-700">
+                                                Jabatan Penandatangan
+                                            </label>
+                                            <input
+                                                type="text"
+                                                id="kolektif_penandatangan_jabatan"
+                                                name="penandatangan_jabatan"
+                                                x-model="kolektifPenandatanganJabatan"
+                                                placeholder="Kepala SMK Negeri 1 Banyuwangi"
+                                                class="form-input text-sm w-full"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Modal Footer --}}
+                            <div class="px-6 py-4 border-t flex items-center justify-end gap-3" style="border-color: var(--color-border); background-color: var(--color-cream);">
+                                <x-button type="button" variant="sekunder" @click="modalKolektif = false">
+                                    Batal
+                                </x-button>
+                                <x-button type="submit" variant="utama">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                    </svg>
+                                    Unduh Dokumen Kolektif (DOCX)
                                 </x-button>
                             </div>
                         </form>

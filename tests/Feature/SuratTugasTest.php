@@ -416,3 +416,124 @@ test('gagal menerbitkan surat tugas jika supervisor tidak memiliki penugasan gur
 
     $response->assertSessionHasErrors('penilai_id');
 });
+
+test('admin dapat mengunduh SK kolektif tim observer dalam format DOCX valid', function () {
+    $data = setupSekolahDenganPenugasan();
+
+    // Tambah info supervisi dengan mata pelajaran untuk guru A
+    $penugasanA = Penugasan::where('periode_id', $data['periode']->id)
+        ->where('guru_id', $data['guruA']->id)
+        ->first();
+
+    $penugasanA->infoSupervisi()->create([
+        'sekolah_id' => $data['sekolah']->id,
+        'kelas' => 'XII RPL 1',
+        'mata_pelajaran' => 'Pemrograman Web & Perangkat Bergerak',
+    ]);
+
+    $payload = [
+        'nomor_surat' => '400.3/002/101.6.7.18/2026',
+        'tanggal_surat' => '2026-01-02',
+        'lampiran_judul' => 'SK Tim Pelaksana Penilaian Pengelolaan Kinerja Guru Tahun 2026',
+        'penandatangan_nama' => 'Drs. MULYADI, M.Pd',
+        'penandatangan_pangkat' => 'Pembina Utama Muda, IV/c',
+        'penandatangan_nip' => '196607041994121003',
+        'penandatangan_jabatan' => 'Kepala SMK Negeri 1 Banyuwangi',
+        'kota' => 'Banyuwangi',
+    ];
+
+    $response = $this->actingAs($data['admin'])
+        ->withSession(['active_role' => 'admin', 'sekolah_kode' => $data['sekolah']->kode])
+        ->post(
+            route('admin.surat-tugas.unduh-kolektif', [
+                'kode' => $data['sekolah']->kode,
+                'periode' => $data['periode']->id,
+            ]),
+            $payload
+        );
+
+    $response->assertOk();
+    $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+
+    // Ambil file biner DOCX
+    $tempDocx = tempnam(sys_get_temp_dir(), 'test_dl_kolektif_');
+    $file = $response->getFile();
+    copy($file->getPathname(), $tempDocx);
+
+    // Buka file sebagai ZIP
+    $zip = new ZipArchive;
+    $isOpen = $zip->open($tempDocx);
+    expect($isOpen)->toBeTrue('File kolektif yang dihasilkan harus merupakan ZIP/DOCX valid.');
+
+    $documentXml = $zip->getFromName('word/document.xml');
+    $zip->close();
+    @unlink($tempDocx);
+
+    expect($documentXml)->not->toBeFalse();
+
+    // Verifikasi konten dokumen XML
+    expect($documentXml)->toContain('TIM PENGAMAT (OBSERVER)');
+    expect($documentXml)->toContain('PRAKTIK PEMBELAJARAN DAN PENGELOLAAN KINERJA GURU');
+    expect($documentXml)->toContain('400.3/002/101.6.7.18/2026');
+    expect($documentXml)->toContain($data['supervisor']->nama);
+    expect($documentXml)->toContain($data['guruA']->nama);
+    expect($documentXml)->toContain($data['guruB']->nama);
+    expect($documentXml)->toContain('Pemrograman Web & Perangkat Bergerak');
+    expect($documentXml)->toContain('Drs. MULYADI, M.Pd');
+    expect($documentXml)->toContain('Pembina Utama Muda, IV/c');
+    expect($documentXml)->toContain('Banyuwangi');
+});
+
+test('akses lintas-tenant ke unduh SK kolektif menghasilkan 404', function () {
+    $dataA = setupSekolahDenganPenugasan();
+
+    // Setup Sekolah B
+    TenantContext::clear();
+    $sekolahB = Sekolah::create([
+        'nama' => 'SMK Swasta B',
+        'kode' => 'smk-b-'.uniqid(),
+        'status' => 'aktif',
+    ]);
+    TenantContext::set($sekolahB->id);
+
+    $adminB = User::create([
+        'sekolah_id' => $sekolahB->id,
+        'nama' => 'Admin Sekolah B',
+        'username' => 'admin_b_'.uniqid(),
+        'password' => Hash::make('password123'),
+        'must_change_password' => false,
+        'aktif' => true,
+    ]);
+    $adminB->roles()->create(['sekolah_id' => $sekolahB->id, 'role' => 'admin']);
+
+    // Admin B mencoba mengunduh SK kolektif untuk Periode milik Sekolah A
+    $response = $this->actingAs($adminB)
+        ->withSession(['active_role' => 'admin', 'sekolah_kode' => $sekolahB->kode])
+        ->post("/s/{$sekolahB->kode}/admin/surat-tugas/{$dataA['periode']->id}/kolektif/unduh", [
+            'nomor_surat' => '400.3/001/2026',
+            'tanggal_surat' => '2026-01-02',
+            'penandatangan_nama' => 'Kepala Sekolah B',
+        ]);
+
+    $response->assertNotFound();
+});
+
+test('role non-admin ditolak saat mencoba mengunduh SK kolektif (403)', function () {
+    $data = setupSekolahDenganPenugasan();
+
+    $responseSpv = $this->actingAs($data['supervisor'])
+        ->withSession(['active_role' => 'supervisor', 'sekolah_kode' => $data['sekolah']->kode])
+        ->post(
+            route('admin.surat-tugas.unduh-kolektif', [
+                'kode' => $data['sekolah']->kode,
+                'periode' => $data['periode']->id,
+            ]),
+            [
+                'nomor_surat' => '400.3/001/2026',
+                'tanggal_surat' => '2026-01-02',
+                'penandatangan_nama' => 'Kepala Sekolah',
+            ]
+        );
+
+    $responseSpv->assertForbidden();
+});

@@ -15,6 +15,8 @@ use App\SuperAdmin\Controllers\InstrumenController;
 use App\SuperAdmin\Controllers\SekolahController;
 use App\SuperAdmin\Controllers\SuperAdminAuthController;
 use App\SuperAdmin\Controllers\SuperAdminDashboardController;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -25,6 +27,51 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
+});
+
+// Rute darurat setup & migrasi hosting (bisa diakses via browser)
+Route::get('/setup-db-hosting', function () {
+    $results = [];
+
+    // 1. Cek Koneksi Database
+    try {
+        DB::connection()->getPdo();
+        $results[] = '✅ [1/4] KONEKSI DATABASE: BERHASIL (Nama DB: '.DB::connection()->getDatabaseName().')';
+    } catch (Throwable $e) {
+        $results[] = '❌ [1/4] KONEKSI DATABASE GAGAL: '.$e->getMessage()."\n\nTips: Periksa DB_DATABASE, DB_USERNAME, DB_PASSWORD di file .env dan pastikan user sudah diberi 'ALL PRIVILEGES' ke database di cPanel.";
+
+        return '<pre style="font-size:15px; font-family:monospace; padding:25px; background:#fff1f2; color:#9f1239; line-height:1.6; border-radius:12px; border:2px solid #fda4af;">'.implode("\n\n------------------------------------\n\n", $results).'</pre>';
+    }
+
+    // 2. Generate Key jika belum ada
+    if (empty(config('app.key'))) {
+        try {
+            Artisan::call('key:generate', ['--force' => true]);
+            $results[] = "✅ [2/4] APP_KEY:\n".trim(Artisan::output());
+        } catch (Throwable $e) {
+            $results[] = '❌ [2/4] APP_KEY GAGAL: '.$e->getMessage();
+        }
+    } else {
+        $results[] = '✅ [2/4] APP_KEY: Sudah terpasang.';
+    }
+
+    // 3. Migrate & Seed
+    try {
+        Artisan::call('migrate:fresh', ['--seed' => true, '--force' => true]);
+        $results[] = "✅ [3/4] MIGRASI & SEEDER:\n".trim(Artisan::output());
+    } catch (Throwable $e) {
+        $results[] = '❌ [3/4] MIGRASI & SEEDER GAGAL: '.$e->getMessage();
+    }
+
+    // 4. Storage Link
+    try {
+        Artisan::call('storage:link');
+        $results[] = "✅ [4/4] STORAGE LINK:\n".trim(Artisan::output());
+    } catch (Throwable $e) {
+        $results[] = '⚠️ [4/4] STORAGE LINK: '.$e->getMessage();
+    }
+
+    return '<pre style="font-size:15px; font-family:monospace; padding:25px; background:#f0fdf4; color:#14532d; line-height:1.6; border-radius:12px; border:2px solid #86efac;">'.implode("\n\n------------------------------------------------------------\n\n", $results).'</pre>';
 });
 
 // Logout global
@@ -170,6 +217,7 @@ Route::prefix('s/{kode}')->middleware(['tenant'])->group(function () {
 
             // Penerbitan & Unduh Surat Tugas Supervisor (DOCX)
             Route::get('/surat-tugas', [SuratTugasController::class, 'index'])->name('surat-tugas.index');
+            Route::post('/surat-tugas/{periode}/kolektif/unduh', [SuratTugasController::class, 'unduhKolektif'])->name('surat-tugas.unduh-kolektif');
             Route::post('/surat-tugas/{periode}/{penilai}', [SuratTugasController::class, 'store'])->name('surat-tugas.store');
             Route::get('/surat-tugas/{suratTugas}/unduh', [SuratTugasController::class, 'download'])->name('surat-tugas.download');
 
