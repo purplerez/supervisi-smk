@@ -68,6 +68,16 @@ class FormPenilaian extends Component
             $this->penilaian->loadMissing(['versiInstrumen.bagian.butir', 'penilaianButir']);
         }
 
+        // Inisialisasi semua butir instrumen ke array skor dan catatan
+        if ($this->penilaian->versiInstrumen) {
+            foreach ($this->penilaian->versiInstrumen->bagian as $bagian) {
+                foreach ($bagian->butir as $butir) {
+                    $this->skor[$butir->id] = null;
+                    $this->catatanButir[$butir->id] = null;
+                }
+            }
+        }
+
         // Isi form dengan data yang sudah tersimpan
         foreach ($this->penilaian->penilaianButir as $item) {
             $this->skor[$item->butir_instrumen_id] = $item->skor;
@@ -76,6 +86,18 @@ class FormPenilaian extends Component
 
         $this->catatan = $this->penilaian->catatan;
         $this->tindakLanjut = $this->penilaian->tindak_lanjut;
+    }
+
+    /**
+     * Set skor untuk butir instrumen tertentu.
+     */
+    public function setSkor(int|string $butirId, int $skorValue): void
+    {
+        if ($this->penilaian->isFinal()) {
+            return;
+        }
+
+        $this->skor[(int) $butirId] = (int) $skorValue;
     }
 
     /**
