@@ -172,6 +172,6 @@ class AdminSekolahManager extends Component
 
     public function render()
     {
-        return view('livewire.super-admin.admin-sekolah-manager')->layout('layouts.app', ['title' => 'Kelola Admin Sekolah']);
+        return view('livewire.super-admin.admin-sekolah-manager')->layout('layouts.super-admin', ['title' => 'Kelola Admin Sekolah']);
     }
 }

@@ -1,4 +1,4 @@
-<x-app-layout title="Dasbor Super Admin">
+<x-layouts.super-admin title="Dasbor Super Admin">
     <x-page-header
         title="Dasbor Super Admin"
         subtitle="Manajemen dan pemantauan lintas sekolah."
@@ -31,4 +31,4 @@
     </div>
 
     <livewire:super-admin.sekolah-manager />
-</x-app-layout>
+</x-layouts.super-admin>
