@@ -221,21 +221,21 @@
                         $jadwalItem = $penugasan->jadwalSupervisi->firstWhere('jenisInstrumen.kode', $kodeInstrumen);
                     @endphp
 
-                    <div class="p-5 rounded-2xl border transition-all hover:shadow-sm" style="border-color: var(--color-border); background-color: #ffffff;">
+                    <div class="p-5 rounded-2xl border border-slate-100 hover:border-slate-300 transition-all duration-150 hover:shadow-xs bg-white">
                         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             {{-- Sisi Kiri: Nomor Tahap, Judul, dan Deskripsi --}}
                             <div class="flex items-start gap-4">
                                 <div
-                                    class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-base shrink-0"
+                                    class="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-base shrink-0 shadow-2xs"
                                     style="
                                         @if($status === 'final')
-                                            background-color: #E8F5E9; color: #1B5E20; border: 2px solid #A5D6A7;
+                                            background-color: #E8F5E9; color: #1B5E20; border: 1.5px solid #A5D6A7;
                                         @elseif($status === 'draft')
-                                            background-color: #FFF3D6; color: #8A5A00; border: 2px solid #FFE082;
+                                            background-color: #FFF3D6; color: #8A5A00; border: 1.5px solid #FFE082;
                                         @elseif($status === 'direvisi')
-                                            background-color: #FDE8D4; color: #8A3B00; border: 2px solid #FFCCBC;
+                                            background-color: #FDE8D4; color: #8A3B00; border: 1.5px solid #FFCCBC;
                                         @else
-                                            background-color: #EEF0F4; color: #4B5563; border: 2px solid #E2E8F0;
+                                            background-color: #EEF0F4; color: #4B5563; border: 1.5px solid #E2E8F0;
                                         @endif
                                     "
                                 >

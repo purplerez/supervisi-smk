@@ -5,16 +5,16 @@
 
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div class="w-full sm:w-1/3 relative">
-            <x-input wire:model.live.debounce.300ms="search" placeholder="Cari sekolah..." type="search" class="w-full pl-10" />
+            <x-input wrapperClass="mb-0" wire:model.live.debounce.300ms="search" placeholder="Cari sekolah..." type="search" class="w-full pl-10" />
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                <svg class="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
                 </svg>
             </div>
         </div>
 
         <a href="{{ route('super-admin.sekolah.create') }}" class="btn btn-tambah inline-flex items-center gap-1.5">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
             </svg>
             Tambah Sekolah
@@ -24,16 +24,16 @@
     <x-card class="overflow-x-auto">
         <x-table :headers="['Nama Sekolah', 'Kode', 'NPSN', 'Status', 'Aksi']">
             @forelse($sekolahs as $sekolah)
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="font-semibold text-gray-900">{{ $sekolah->nama }}</td>
-                    <td class="font-mono text-xs">{{ $sekolah->kode }}</td>
-                    <td>{{ $sekolah->npsn ?? '-' }}</td>
+                <tr class="hover:bg-gray-50/80 transition-colors">
+                    <td class="font-medium text-gray-900">{{ $sekolah->nama }}</td>
+                    <td class="font-mono text-xs text-gray-500">{{ $sekolah->kode }}</td>
+                    <td class="text-sm text-gray-600">{{ $sekolah->npsn ?? '-' }}</td>
                     <td>
                         <x-badge-status :status="$sekolah->status === 'aktif' ? 'final' : 'belum'" :label="ucfirst($sekolah->status)"/>
                     </td>
                     <td class="flex gap-2">
-                        <a href="{{ route('super-admin.sekolah.edit', $sekolah->id) }}" class="btn btn-ghost text-sm py-1 px-3">Edit</a>
-                        <a href="{{ route('super-admin.sekolah.show', $sekolah->id) }}" class="btn btn-primary text-sm py-1 px-3">Kelola Admin</a>
+                        <a href="{{ route('super-admin.sekolah.edit', $sekolah->id) }}" class="btn btn-ghost btn-sm">Edit</a>
+                        <a href="{{ route('super-admin.sekolah.show', $sekolah->id) }}" class="btn btn-primary btn-sm">Kelola Admin</a>
                     </td>
                 </tr>
             @empty

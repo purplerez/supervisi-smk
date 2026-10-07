@@ -24,10 +24,10 @@
             />
         </x-card>
     @else
-        <div class="mb-6 bg-white rounded-xl shadow-sm border border-neutral-200 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="mb-6 bg-white rounded-2xl shadow-xs border border-slate-100 hover:border-slate-200 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all">
             <div>
                 <div class="flex items-center gap-3">
-                    <h2 class="text-xl font-bold text-navy-900">{{ $periode->nama }}</h2>
+                    <h2 class="text-xl font-extrabold text-[#0d0d0d]">{{ $periode->nama }}</h2>
                     <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
                         Periode Aktif
                     </span>
@@ -149,11 +149,11 @@
                             $selesaiCount = $item->penilaian->where('status', 'final')->count();
                             $persenSelesai = round(($selesaiCount / 4) * 100);
                         @endphp
-                        <div class="bg-white rounded-xl shadow-sm border border-neutral-200 hover:border-navy-300 p-6 transition flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                        <div class="bg-white rounded-2xl shadow-xs border border-slate-100 hover:border-slate-300 p-6 transition-all duration-150 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                             {{-- Info Guru & Progres --}}
                             <div class="space-y-3 flex-1">
                                 <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                                    <h3 class="text-xl font-bold text-navy-900">
+                                    <h3 class="text-xl font-bold text-[#0d0d0d]">
                                         {{ $item->guru->nama }}
                                     </h3>
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold {{ $selesaiCount === 4 ? 'bg-emerald-100 text-emerald-800' : 'bg-navy-50 text-navy-900' }}">
@@ -163,11 +163,11 @@
                                 <div class="flex flex-wrap items-center gap-y-1 gap-x-3 text-sm text-muted">
                                     <span>NIP: {{ $item->guru->nip ?: '-' }} &bull; NUPTK: {{ $item->guru->nuptk ?: '-' }}</span>
                                     @if($item->infoSupervisi && $item->infoSupervisi->mata_pelajaran)
-                                        <span class="text-xs font-semibold text-navy-900 bg-navy-50 px-2 py-0.5 rounded border border-navy-100">
+                                        <span class="text-xs font-semibold text-navy-900 bg-navy-50 px-2.5 py-1 rounded-xl border border-navy-100">
                                             {{ $item->infoSupervisi->mata_pelajaran }} ({{ $item->infoSupervisi->kelas ?: '-' }})
                                         </span>
                                     @else
-                                        <span class="text-xs font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                        <span class="text-xs font-semibold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-xl border border-amber-200">
                                             ⚠️ Belum isi jadwal & info pembelajaran
                                         </span>
                                     @endif
@@ -190,7 +190,7 @@
                                                 default => $pen->jenisInstrumen->nama ?? '-'
                                             };
                                         @endphp
-                                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border
+                                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium border
                                             {{ $pen->isFinal() ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : '' }}
                                             {{ $pen->isDraft() ? 'bg-amber-50 text-amber-800 border-amber-200' : '' }}
                                             {{ $pen->isDirevisi() ? 'bg-orange-50 text-orange-800 border-orange-200' : '' }}
@@ -211,7 +211,7 @@
                             {{-- Tombol Aksi Detail --}}
                             <div class="flex items-center justify-end">
                                 <a href="{{ route('supervisor.penugasan.show', ['kode' => $sekolah->kode, 'penugasan' => $item->id]) }}" 
-                                   class="px-5 py-2.5 rounded-xl font-bold text-white bg-navy-900 hover:bg-navy-800 active:scale-[0.98] transition shadow-sm min-h-[44px] flex items-center gap-2">
+                                   class="px-5 py-2.5 rounded-2xl font-bold text-white bg-navy-900 hover:bg-navy-800 active:scale-[0.98] transition shadow-xs min-h-[44px] flex items-center gap-2">
                                     <span>Buka Lembar Penilaian</span>
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />

@@ -27,16 +27,16 @@
     <x-card class="overflow-x-auto">
         <x-table :headers="['Nama', 'Username', 'Email', 'Status', 'Aksi']">
             @foreach($this->admins as $admin)
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="font-semibold text-gray-900">{{ $admin->nama }}</td>
-                    <td class="font-mono text-sm">{{ $admin->username }}</td>
-                    <td>{{ $admin->email ?? '-' }}</td>
+                <tr class="hover:bg-gray-50/80 transition-colors">
+                    <td class="font-medium text-gray-900">{{ $admin->nama }}</td>
+                    <td class="font-mono text-xs text-gray-500">{{ $admin->username }}</td>
+                    <td class="text-sm text-gray-600">{{ $admin->email ?? '-' }}</td>
                     <td>
                         <x-badge-status :status="$admin->aktif ? 'final' : 'belum'" :label="$admin->aktif ? 'Aktif' : 'Nonaktif'"/>
                     </td>
                     <td class="flex gap-2">
-                        <button wire:click="edit({{ $admin->id }})" class="btn btn-ghost text-sm py-1 px-3">Edit</button>
-                        <button wire:click="konfirmasiReset({{ $admin->id }})" class="btn btn-outline text-sm py-1 px-3 text-yellow-600 border-yellow-600 hover:bg-yellow-50">Reset Password</button>
+                        <button wire:click="edit({{ $admin->id }})" class="btn btn-ghost btn-sm">Edit</button>
+                        <button wire:click="konfirmasiReset({{ $admin->id }})" class="btn btn-outline btn-sm text-yellow-600 border-yellow-600 hover:bg-yellow-50">Reset Password</button>
                     </td>
                 </tr>
             @endforeach

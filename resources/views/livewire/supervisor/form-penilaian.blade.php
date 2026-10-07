@@ -90,7 +90,7 @@
     <div class="space-y-4" x-data="{ openSections: {{ json_encode($bagianList->pluck('id')->values()->all()) }} }">
         @if ($bagianList->isNotEmpty())
             @foreach ($bagianList as $indexBagian => $bagian)
-                <div class="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
+                <div class="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden" wire:key="bagian-{{ $bagian->id }}">
                     {{-- Accordion Header --}}
                     <button type="button" 
                             @click="openSections.includes({{ $bagian->id }}) ? openSections = openSections.filter(id => id !== {{ $bagian->id }}) : openSections.push({{ $bagian->id }})"
@@ -113,7 +113,7 @@
                             <svg class="w-5 h-5 text-navy-900 transition-transform duration-200" 
                                  :class="openSections.includes({{ $bagian->id }}) ? 'rotate-180' : ''" 
                                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                             </svg>
                         </div>
                     </button>
@@ -121,7 +121,7 @@
                     {{-- Accordion Content --}}
                     <div x-show="openSections.includes({{ $bagian->id }})" x-collapse class="divide-y divide-neutral-100 p-6 space-y-6">
                         @foreach ($bagian->butirInstrumen as $indexButir => $butir)
-                            <div class="pt-6 first:pt-0">
+                            <div class="pt-6 first:pt-0" wire:key="butir-item-{{ $butir->id }}">
                                 <div class="flex items-start gap-4">
                                     <span class="w-7 h-7 rounded-full bg-neutral-100 text-navy-900 font-semibold text-sm flex items-center justify-center flex-shrink-0 mt-0.5">
                                         {{ $butir->urutan }}
@@ -141,7 +141,8 @@
                                                     @endphp
                                                     <button
                                                         type="button"
-                                                        @if(! $penilaian->isFinal()) wire:click="$set('skor.{{ $butir->id }}', {{ $s }})" @endif
+                                                        wire:key="butir-{{ $butir->id }}-skor-{{ $s }}"
+                                                        @if(! $penilaian->isFinal()) wire:click="setSkor({{ $butir->id }}, {{ $s }})" @endif
                                                         class="relative flex items-center justify-center p-3 rounded-xl border min-h-[48px] select-none transition w-full {{ $isSelected ? 'bg-navy-900 border-navy-900 text-white font-bold ring-2 ring-orange-500 ring-offset-2 shadow' : 'bg-white border-neutral-300 text-ink hover:bg-navy-50 hover:border-navy-400' }} {{ $penilaian->isFinal() ? 'cursor-not-allowed opacity-80' : 'cursor-pointer' }}"
                                                         {{ $penilaian->isFinal() ? 'disabled' : '' }}
                                                         aria-label="Skor {{ $s }}"
@@ -156,7 +157,7 @@
                                         <div>
                                             <label class="block text-xs font-medium text-muted mb-1">Catatan Khusus Butir Ini (opsional):</label>
                                             <input type="text" 
-                                                   wire:model="catatanButir.{{ $butir->id }}"
+                                                   wire:model.blur="catatanButir.{{ $butir->id }}"
                                                    {{ $penilaian->isFinal() ? 'disabled' : '' }}
                                                    placeholder="Tuliskan catatan khusus atau bukti pengamatan..." 
                                                    class="w-full text-sm border-neutral-300 rounded-lg focus:border-navy-700 focus:ring focus:ring-orange-500/20 disabled:bg-neutral-50 disabled:text-neutral-500">
