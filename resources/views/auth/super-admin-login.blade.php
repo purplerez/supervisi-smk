@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Masuk Super Admin — {{ config('app.name', 'Supervisi Guru') }}</title>
+    @livewireStyles
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-full flex flex-col justify-center py-12 sm:px-6 lg:px-8 antialiased" style="background-color: var(--color-cream);">
@@ -51,7 +52,7 @@
                     autocomplete="username"
                     :value="old('login') ?: old('email')"
                     required
-                    placeholder="superadmin atau nama@domain.com"
+                    placeholder="Masukkan Username"
                     autofocus
                 />
 
@@ -89,5 +90,6 @@
             </form>
         </div>
     </div>
+    @livewireScripts
 </body>
 </html>
