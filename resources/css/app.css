@@ -1,8 +1,13 @@
-/* === Font Inter dari @fontsource (lokal, tanpa CDN) === */
+/* === Font Inter & Poppins dari @fontsource (lokal, tanpa CDN) === */
 @import '@fontsource/inter/400.css';
 @import '@fontsource/inter/500.css';
 @import '@fontsource/inter/600.css';
 @import '@fontsource/inter/700.css';
+
+@import '@fontsource/poppins/400.css';
+@import '@fontsource/poppins/500.css';
+@import '@fontsource/poppins/600.css';
+@import '@fontsource/poppins/700.css';
 
 @import 'tailwindcss';
 
@@ -45,10 +50,14 @@
     --color-badge-direvisi-text:#8A3B00;
 
     /* Typography */
-    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-sans: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 
     /* Radius */
-    --radius-card: 12px;
+    --radius-card: 1rem;
+}
+
+[x-cloak] {
+    display: none !important;
 }
 
 /* ===================================================
@@ -57,22 +66,22 @@
 @layer base {
     html {
         font-family: var(--font-sans);
-        font-size: 17px;
-        line-height: 1.6;
+        font-size: 14.5px;
+        line-height: 1.5;
         color: var(--color-ink);
         background-color: var(--color-cream);
         -webkit-font-smoothing: antialiased;
     }
 
-    /* Pastikan tidak ada teks di bawah 14px */
+    /* Pastikan text rendering halus */
     * {
         min-font-size: 0;
     }
 
-    h1 { font-size: 1.647rem; font-weight: 700; line-height: 1.3; } /* ~28px */
-    h2 { font-size: 1.176rem; font-weight: 600; line-height: 1.4; } /* ~20px */
-    h3 { font-size: 1.059rem; font-weight: 600; }
-    h4 { font-size: 1rem;     font-weight: 600; }
+    h1 { font-size: 1.375rem; font-weight: 700; line-height: 1.25; } /* ~20px */
+    h2 { font-size: 1.125rem; font-weight: 600; line-height: 1.3; }  /* ~16.3px */
+    h3 { font-size: 1rem;     font-weight: 600; line-height: 1.35; } /* ~14.5px */
+    h4 { font-size: 0.925rem; font-weight: 600; }                    /* ~13.4px */
 
     a { color: var(--color-navy-700); text-decoration: underline; }
     a:hover { color: var(--color-navy-900); }
@@ -88,18 +97,21 @@
     table { width: 100%; border-collapse: collapse; }
     th {
         background-color: var(--color-navy-50);
-        padding: 0.625rem 1rem;
+        padding: 0.7rem 1rem;
         font-weight: 600;
-        font-size: 0.882rem; /* ~15px */
+        font-size: 0.8125rem; /* ~11.8px */
         text-align: left;
         color: var(--color-navy-900);
-        border-bottom: 2px solid var(--color-border);
+        border-bottom: 1px solid var(--color-border);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
     }
     td {
-        padding: 0.75rem 1rem;
+        padding: 0.7rem 1rem;
         border-bottom: 1px solid var(--color-border);
         vertical-align: middle;
-        font-size: 0.941rem; /* ~16px */
+        font-size: 0.875rem; /* ~12.7px */
+        font-weight: 400;
     }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background-color: color-mix(in srgb, var(--color-navy-50) 40%, transparent); }
@@ -109,30 +121,67 @@
    UTILITIES TAMBAHAN
 =================================================== */
 @layer utilities {
-    /* Card */
+    /* Card (menyesuaikan gaya rounded-2xl & soft border seperti di sidebar) */
     .card {
         background: #ffffff;
         border-radius: var(--radius-card);
-        box-shadow: 0 1px 4px rgb(0 0 0 / 0.08), 0 0 0 1px var(--color-border);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
         padding: 1.5rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
     }
 
-    /* Sidebar nav item aktif */
+    /* Sidebar nav item aktif & inaktif (Huge Icons style - Poppins Regular 14px) */
+    .nav-item,
+    .nav-item:hover,
+    .nav-item:focus,
+    .nav-item-active,
+    .nav-item-active:hover,
+    .nav-item-inactive,
+    .nav-item-inactive:hover {
+        display: flex;
+        align-items: center;
+        gap: 0.875rem;              /* 14px jarak ikon ke teks */
+        padding: 0.75rem 1rem;       /* px-4 py-3 */
+        margin-top: 0.25rem;        /* my-1 */
+        margin-bottom: 0.25rem;
+        font-family: 'Poppins', var(--font-sans);
+        font-size: 0.875rem;        /* 14px (kurangi ukuran font) */
+        font-weight: 400;           /* Reguler (tidak bold) */
+        border-radius: 1rem;        /* rounded-2xl */
+        transition: all 0.15s ease-in-out;
+        text-decoration: none !important;
+    }
+    .nav-item svg {
+        width: 1.25rem;             /* 20px ikon */
+        height: 1.25rem;
+        flex-shrink: 0;
+    }
     .nav-item-active {
-        background-color: var(--color-navy-50);
-        border-left: 3px solid var(--color-orange-500);
-        color: var(--color-navy-900);
-        font-weight: 600;
+        background-color: #e5e7eb;
+        color: #0d0d0d !important;
+        font-weight: 400;           /* Reguler */
+        box-shadow: none;
+    }
+    .nav-item-active svg {
+        color: #0d0d0d !important;
+        fill: currentColor;
     }
     .nav-item-inactive {
-        border-left: 3px solid transparent;
-        color: var(--color-muted);
+        color: #111827;
         background-color: transparent;
+        font-weight: 400;           /* Reguler */
     }
     .nav-item-inactive:hover {
-        background-color: color-mix(in srgb, var(--color-navy-50) 60%, transparent);
-        color: var(--color-navy-700);
-        border-left-color: color-mix(in srgb, var(--color-orange-500) 30%, transparent);
+        background-color: #f3f4f6;
+        color: #0d0d0d;
+    }
+    .nav-item-inactive svg {
+        color: #111827;
+        transition: color 0.15s ease;
+    }
+    .nav-item-inactive:hover svg {
+        color: #0d0d0d;
     }
 
     /* Target klik minimal 44px */
@@ -146,13 +195,17 @@
 
     /* Page header */
     .page-title {
-        font-size: 1.647rem;
+        font-family: var(--font-sans);
+        font-size: 1.375rem;
         font-weight: 700;
+        letter-spacing: -0.015em;
         color: var(--color-navy-900);
     }
     .section-title {
-        font-size: 1.176rem;
+        font-family: var(--font-sans);
+        font-size: 1.125rem;
         font-weight: 600;
+        letter-spacing: -0.01em;
         color: var(--color-navy-900);
     }
 
@@ -173,17 +226,18 @@
         align-items: center;
         justify-content: center;
         gap: 0.4rem;
-        min-height: 44px;
-        padding: 0 1.25rem;
-        font-size: 0.941rem;
-        font-weight: 600;
-        border-radius: 8px;
-        border: 2px solid transparent;
+        min-height: 38px;
+        padding: 0.45rem 1.125rem;
+        font-family: var(--font-sans);
+        font-size: 0.875rem;
+        font-weight: 500;
+        border-radius: 0.75rem;
+        border: 1.5px solid transparent;
         cursor: pointer;
         transition: background-color 150ms ease, box-shadow 150ms ease, transform 80ms ease;
         text-decoration: none;
         white-space: nowrap;
-        line-height: 1;
+        line-height: 1.25;
     }
     .btn:active { transform: translateY(1px); }
     .btn:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -238,18 +292,19 @@
     }
 
     /* Size: sm */
-    .btn-sm { min-height: 36px; padding: 0 0.875rem; font-size: 0.824rem; }
+    .btn-sm { min-height: 30px; padding: 0.25rem 0.65rem; font-size: 0.8125rem; border-radius: 0.5rem; }
     /* Size: lg */
-    .btn-lg { min-height: 52px; padding: 0 1.75rem; font-size: 1rem; }
+    .btn-lg { min-height: 46px; padding: 0.65rem 1.35rem; font-size: 0.95rem; border-radius: 0.875rem; }
 
     /* ===== BADGE STATUS ===== */
     .badge {
         display: inline-flex;
         align-items: center;
-        padding: 0.2em 0.75em;
+        padding: 0.2em 0.7em;
         border-radius: 999px;
-        font-size: 0.824rem;
-        font-weight: 600;
+        font-family: var(--font-sans);
+        font-size: 0.775rem;
+        font-weight: 500;
         letter-spacing: 0.01em;
         white-space: nowrap;
     }
@@ -273,18 +328,19 @@
     /* ===== FORM ELEMENTS ===== */
     .form-label {
         display: block;
-        font-size: 0.941rem;
+        font-family: var(--font-sans);
+        font-size: 0.875rem;
         font-weight: 500;
         color: var(--color-ink);
         margin-bottom: 0.35rem;
     }
     .form-hint {
-        font-size: 0.824rem;
+        font-size: 0.775rem;
         color: var(--color-muted);
         margin-top: 0.25rem;
     }
     .form-error {
-        font-size: 0.824rem;
+        font-size: 0.775rem;
         color: var(--color-action-red);
         margin-top: 0.25rem;
         display: flex;
@@ -293,11 +349,13 @@
     }
     .form-input {
         width: 100%;
-        min-height: 44px;
-        padding: 0.5rem 0.875rem;
+        min-height: 38px;
+        padding: 0.45rem 0.85rem;
         border: 1.5px solid var(--color-border);
-        border-radius: 8px;
-        font-size: 0.941rem;
+        border-radius: 0.75rem;
+        font-family: var(--font-sans);
+        font-size: 0.875rem;
+        font-weight: 400;
         color: var(--color-ink);
         background-color: #ffffff;
         transition: border-color 150ms, box-shadow 150ms;
@@ -322,10 +380,11 @@
         display: flex;
         align-items: flex-start;
         gap: 0.75rem;
-        padding: 1rem 1.25rem;
-        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        border-radius: 0.75rem;
         border-left: 4px solid transparent;
-        font-size: 0.941rem;
+        font-family: var(--font-sans);
+        font-size: 0.875rem;
         margin-bottom: 1.25rem;
     }
     .alert-sukses {
