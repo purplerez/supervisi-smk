@@ -196,7 +196,7 @@ test('livewire form penilaian dapat memilih skor dan menyimpan draf', function (
     $this->actingAs($spv);
 
     Livewire::test(FormPenilaian::class, ['penilaian' => $penilaian])
-        ->set("skor.{$butir1->id}", 4)
+        ->call('setSkor', $butir1->id, 4)
         ->set("catatanButir.{$butir1->id}", 'Bagus sekali')
         ->set('catatan', 'Pembelajaran berjalan lancar')
         ->set('tindakLanjut', 'Pertahankan')
