@@ -11,6 +11,7 @@ use App\Services\GuruSupervisiService;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class GuruDashboardController extends Controller
@@ -52,7 +53,7 @@ class GuruDashboardController extends Controller
     }
 
     /**
-     * Halaman Pengisian Informasi Supervisi & Jadwal Observasi.
+     * Halaman Pengisian Informasi Supervisi, Pilihan Supervisor & Jadwal Observasi.
      */
     public function infoJadwal(Request $request, string $kode): View|RedirectResponse
     {
@@ -68,11 +69,37 @@ class GuruDashboardController extends Controller
         }
 
         $penugasan = $this->guruSupervisiService->ambilPenugasanPeriodeAktif($guru);
+        $supervisors = collect();
 
+        // Jika guru belum mengajukan supervisi: siapkan daftar supervisor yang dapat dipilih
         if (! $penugasan) {
-            return redirect()
-                ->route('guru.dashboard', ['kode' => $kode])
-                ->with('peringatan', 'Anda belum memiliki penugasan supervisi pada periode aktif saat ini.');
+            $supervisors = $this->guruSupervisiService->ambilSupervisorsTersedia($sekolah, $guru);
+            $canEdit = true;
+
+            $jenisInstrumenList = JenisInstrumen::milikSekolah()
+                ->where('sekolah_id', $sekolah->id)
+                ->orderBy('urutan')
+                ->get();
+
+            if ($jenisInstrumenList->isEmpty()) {
+                $jenisInstrumenList = JenisInstrumen::globalTemplate()
+                    ->orderBy('urutan')
+                    ->get();
+            }
+
+            $jadwalMap = collect();
+
+            return view('guru.info-jadwal', [
+                'sekolah' => $sekolah,
+                'guru' => $guru,
+                'periode' => $periodeAktif,
+                'penugasan' => null,
+                'info' => null,
+                'canEdit' => $canEdit,
+                'supervisors' => $supervisors,
+                'jenisInstrumenList' => $jenisInstrumenList,
+                'jadwalMap' => $jadwalMap,
+            ]);
         }
 
         $canEdit = $penugasan->guruBisaUbahInfoDanJadwal();
@@ -108,22 +135,28 @@ class GuruDashboardController extends Controller
             'penugasan' => $penugasan,
             'info' => $penugasan->infoSupervisi,
             'canEdit' => $canEdit,
+            'supervisors' => $supervisors,
             'jenisInstrumenList' => $jenisInstrumenList,
             'jadwalMap' => $jadwalMap,
         ]);
     }
 
     /**
-     * Simpan pembaruan formulir Informasi Supervisi dan Jadwal.
+     * Simpan pengajuan supervisi (baru) atau pembaruan formulir Informasi Supervisi dan Jadwal.
      */
     public function simpanInfoJadwal(SimpanInfoJadwalRequest $request, string $kode): RedirectResponse
     {
+        $sekolah = Sekolah::where('kode', $kode)->firstOrFail();
         $guru = $request->user();
-        $penugasan = $this->guruSupervisiService->ambilPenugasanPeriodeAktif($guru);
+        $periodeAktif = Periode::where('status', 'aktif')->first();
 
-        if (! $penugasan) {
-            abort(404, 'Penugasan supervisi tidak ditemukan.');
+        if (! $periodeAktif) {
+            return redirect()
+                ->route('guru.dashboard', ['kode' => $kode])
+                ->with('galat', 'Tidak ada periode supervisi yang sedang aktif di sekolah Anda.');
         }
+
+        $penugasan = $this->guruSupervisiService->ambilPenugasanPeriodeAktif($guru);
 
         try {
             $infoData = $request->only([
@@ -138,6 +171,30 @@ class GuruDashboardController extends Controller
 
             $jadwalData = $request->input('jadwal', []);
 
+            // Kasus 1: Pengajuan baru oleh guru mandiri
+            if (! $penugasan) {
+                $penilaiId = (int) $request->validated('penilai_id');
+
+                $hasil = $this->guruSupervisiService->ajukanSupervisi(
+                    $guru,
+                    $periodeAktif,
+                    $penilaiId,
+                    $infoData,
+                    $jadwalData
+                );
+
+                $redirect = redirect()
+                    ->route('guru.dashboard', ['kode' => $kode])
+                    ->with('sukses', 'Pengajuan supervisi berhasil diajukan. Penugasan Anda bersama supervisor telah aktif.');
+
+                if (! empty($hasil['peringatan'])) {
+                    $redirect->with('peringatan', implode(' ', $hasil['peringatan']));
+                }
+
+                return $redirect;
+            }
+
+            // Kasus 2: Pembaruan info/jadwal pada penugasan yang sudah ada
             $this->guruSupervisiService->simpanInfoDanJadwal(
                 $penugasan,
                 $infoData,
@@ -148,10 +205,10 @@ class GuruDashboardController extends Controller
             return redirect()
                 ->route('guru.info-jadwal', ['kode' => $kode])
                 ->with('sukses', 'Informasi supervisi dan jadwal berhasil disimpan.');
+        } catch (ValidationException $e) {
+            return back()->withInput()->withErrors($e->errors())->with('galat', $e->getMessage());
         } catch (DomainException $e) {
-            return redirect()
-                ->route('guru.info-jadwal', ['kode' => $kode])
-                ->with('galat', $e->getMessage());
+            return back()->withInput()->with('galat', $e->getMessage());
         }
     }
 

@@ -1,8 +1,8 @@
-<x-app-layout :namaSekolah="$sekolah->nama" title="Informasi & Jadwal Supervisi">
+<x-app-layout :namaSekolah="$sekolah->nama" title="Pengajuan & Informasi Supervisi">
 
     <x-page-header
-        title="Informasi & Jadwal Supervisi"
-        subtitle="Lengkapi informasi kelas, mata pelajaran, capaian pembelajaran (CP), dan usulan jadwal observasi supervisi."
+        title="{{ $penugasan ? 'Informasi & Jadwal Supervisi' : 'Pengajuan Supervisi Akademik' }}"
+        subtitle="Pilih supervisor penilai, lengkapi informasi kelas, mata pelajaran, serta usulan jadwal observasi supervisi."
     >
         <x-slot:actions>
             <x-button variant="sekunder" href="{{ route('guru.dashboard', ['kode' => $sekolah->kode]) }}">
@@ -11,8 +11,19 @@
         </x-slot:actions>
     </x-page-header>
 
-    {{-- Banner Status Penguncian Form --}}
-    @if(!$canEdit)
+    {{-- Banner Status Penguncian / Pengajuan Form --}}
+    @if(!$penugasan)
+        <div class="mb-6 p-4 rounded-xl border flex items-start gap-3" style="background-color: var(--color-navy-50); border-color: var(--color-border);">
+            <svg class="w-5 h-5 shrink-0 mt-0.5" style="color: var(--color-navy-900);" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+            </svg>
+            <p class="text-xs leading-relaxed" style="color: var(--color-navy-900);">
+                Anda sedang melakukan pengajuan supervisi pada periode aktif <strong>{{ $periode->nama }}</strong>.
+                Silakan pilih supervisor penilai Anda serta ajukan mata pelajaran dan kelas yang akan diobservasi.
+                <strong>Pilihan supervisor akan langsung aktif dan terkunci setelah formulir diajukan.</strong>
+            </p>
+        </div>
+    @elseif(!$canEdit)
         <div class="mb-6 p-4 rounded-xl border flex items-start gap-3" style="background-color: #FFF3D6; border-color: #FFE082;">
             <svg class="w-6 h-6 text-amber-800 shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
@@ -33,7 +44,7 @@
             </svg>
             <p class="text-xs leading-relaxed" style="color: var(--color-navy-900);">
                 Data ini diisi <strong>ulang pada setiap periode supervisi</strong> dan melekat pada penugasan periode berjalan (<strong>{{ $periode->nama }}</strong>).
-                Anda bebas mengubah data ini hingga proses penilaian pertama dimulai oleh supervisor Anda.
+                Anda bebas memperbarui kelas, mata pelajaran, dan jadwal hingga proses penilaian pertama dimulai oleh supervisor Anda.
             </p>
         </div>
     @endif
@@ -41,14 +52,74 @@
     <form method="POST" action="{{ route('guru.info-jadwal.simpan', ['kode' => $sekolah->kode]) }}" class="space-y-6">
         @csrf
 
-        {{-- BAGIAN 1: INFORMASI KELAS & MATAPELAJARAN --}}
+        {{-- BAGIAN 1: SUPERVISOR PENILAI --}}
+        <x-card class="p-6 md:p-8">
+            <div class="border-b pb-4 mb-6 flex items-center justify-between" style="border-color: var(--color-border);">
+                <div>
+                    <h2 class="text-lg font-bold" style="color: var(--color-navy-900);">
+                        1. Supervisor Penilai
+                    </h2>
+                    <p class="text-xs text-gray-500 mt-0.5">
+                        {{ $penugasan ? 'Supervisor penilai yang mengobservasi pembelajaran Anda pada periode ini.' : 'Pilih supervisor yang akan mendampingi dan menilai kegiatan supervisi akademik Anda.' }}
+                    </p>
+                </div>
+                @if($penugasan)
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                        Telah Ditetapkan
+                    </span>
+                @endif
+            </div>
+
+            @if(!$penugasan)
+                <div>
+                    <label for="penilai_id" class="block text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-navy-900);">
+                        Pilih Supervisor <span class="text-red-600">*</span>
+                    </label>
+                    <select
+                        name="penilai_id"
+                        id="penilai_id"
+                        required
+                        class="form-input text-sm w-full md:w-2/3"
+                    >
+                        <option value="">-- Pilih Salah Satu Supervisor --</option>
+                        @foreach($supervisors as $spv)
+                            <option value="{{ $spv->id }}" {{ (string) old('penilai_id') === (string) $spv->id ? 'selected' : '' }}>
+                                {{ $spv->nama }} (NIP: {{ $spv->nip ?: '-' }})
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('penilai_id')
+                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+                    @enderror
+                    <p class="text-xs text-gray-500 mt-2">
+                        Pilihan supervisor akan langsung aktif dan terkunci setelah diajukan. Penggantian supervisor selanjutnya hanya dapat dilakukan oleh admin sekolah.
+                    </p>
+                </div>
+            @else
+                <div class="p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50/70" style="border-color: var(--color-border);">
+                    <div>
+                        <h3 class="font-bold text-base" style="color: var(--color-navy-900);">
+                            {{ $penugasan->penilai->nama }}
+                        </h3>
+                        <p class="text-xs text-gray-500 mt-0.5">
+                            NIP: {{ $penugasan->penilai->nip ?: '-' }} &bull; Peran: Supervisor Penilai
+                        </p>
+                    </div>
+                    <span class="text-xs text-gray-400 italic">
+                        Terkunci (Penggantian hanya via Admin)
+                    </span>
+                </div>
+            @endif
+        </x-card>
+
+        {{-- BAGIAN 2: INFORMASI KELAS & MATAPELAJARAN --}}
         <x-card class="p-6 md:p-8">
             <div class="border-b pb-4 mb-6" style="border-color: var(--color-border);">
                 <h2 class="text-lg font-bold" style="color: var(--color-navy-900);">
-                    1. Informasi Kelas & Pembelajaran
+                    2. Informasi Kelas & Pembelajaran
                 </h2>
                 <p class="text-xs text-gray-500 mt-0.5">
-                    Informasi subjek kelas dan materi yang akan diobservasi dalam kegiatan supervisi akademik.
+                    Informasi subjek kelas dan materi yang diajukan untuk diobservasi dalam kegiatan supervisi akademik.
                 </p>
             </div>
 
@@ -190,11 +261,11 @@
             </div>
         </x-card>
 
-        {{-- BAGIAN 2: JADWAL SUPERVISI PER INSTRUMEN --}}
+        {{-- BAGIAN 3: JADWAL SUPERVISI PER INSTRUMEN --}}
         <x-card class="p-6 md:p-8">
             <div class="border-b pb-4 mb-6" style="border-color: var(--color-border);">
                 <h2 class="text-lg font-bold" style="color: var(--color-navy-900);">
-                    2. Usulan Jadwal Supervisi per Instrumen
+                    3. Usulan Jadwal Supervisi per Instrumen
                 </h2>
                 <p class="text-xs text-gray-500 mt-0.5">
                     Tentukan tanggal dan rentang jam pelaksanaan untuk setiap instrumen yang akan diobservasi oleh supervisor Anda.
@@ -278,7 +349,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                     </svg>
-                    Simpan Informasi & Jadwal
+                    {{ $penugasan ? 'Simpan Perubahan Informasi & Jadwal' : 'Ajukan Supervisi & Simpan Jadwal' }}
                 </x-button>
             </div>
         @endif

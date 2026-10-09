@@ -5,14 +5,7 @@
         subtitle="Petakan guru yang disupervisi kepada supervisor penilai pada periode supervisi."
     >
         <x-slot:actions>
-            @if($periode && !$periode->isDitutup())
-                <x-button type="button" variant="tambah" @click="$dispatch('buka-modal-penugasan')">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z" />
-                    </svg>
-                    Tambah Penugasan
-                </x-button>
-            @endif
+            {{-- Penugasan kini dilakukan secara mandiri oleh masing-masing guru --}}
         </x-slot:actions>
     </x-page-header>
 
@@ -171,14 +164,8 @@
                         <div class="p-8 text-center">
                             <x-empty-state
                                 title="Belum Ada Penugasan"
-                                description="{{ request('cari') || request('penilai_id') ? 'Tidak ada penugasan yang sesuai dengan filter.' : 'Belum ada guru yang ditugaskan pada periode ini.' }}"
-                            >
-                                @if(!$periode->isDitutup())
-                                    <x-button type="button" variant="tambah" @click="$dispatch('buka-modal-penugasan')">
-                                        Tugaskan Guru Sekarang
-                                    </x-button>
-                                @endif
-                            </x-empty-state>
+                                description="{{ request('cari') || request('penilai_id') ? 'Tidak ada penugasan yang sesuai dengan filter.' : 'Belum ada guru yang mengajukan supervisi pada periode ini. Guru akan memilih supervisor dan mengajukan penugasan secara mandiri di dasbor mereka.' }}"
+                            />
                         </div>
                     @else
                         <div class="overflow-x-auto">
@@ -416,94 +403,6 @@
         </div>
     @endif
 
-    {{-- MODAL TAMBAH PENUGASAN (PILIH 1 SUPERVISOR & CENTANG BEBERAPA GURU) --}}
-    @if($periode && !$periode->isDitutup())
-        <div x-data="{
-            modalTambah: false,
-            pilihSemua: false,
-            toggleSemua() {
-                const checkboxes = document.querySelectorAll('.checkbox-guru');
-                checkboxes.forEach(cb => cb.checked = this.pilihSemua);
-            }
-        }"
-             @buka-modal-penugasan.window="modalTambah = true"
-             x-show="modalTambah"
-             class="fixed inset-0 z-50 overflow-y-auto bg-black/40 flex items-center justify-center p-4"
-             style="display: none;">
-            
-            <div @click.outside="modalTambah = false" class="bg-white rounded-xl max-w-2xl w-full p-6 shadow-xl border my-8" style="border-color: var(--color-border);">
-                <div class="flex items-center justify-between pb-3 mb-4 border-b" style="border-color: var(--color-border);">
-                    <div>
-                        <h3 class="text-xl font-bold" style="color: var(--color-navy-900);">Tambah Penugasan Supervisi</h3>
-                        <p class="text-xs text-gray-500">Periode: {{ $periode->nama }} ({{ $periode->tahun_ajaran }})</p>
-                    </div>
-                    <button type="button" @click="modalTambah = false" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
-                </div>
 
-                @if($guruBelum->isEmpty())
-                    <div class="p-6 text-center text-sm text-gray-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 20 20" fill="currentColor" class="mx-auto mb-2 text-green-600">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
-                        <p class="font-bold">Semua Guru Sudah Memiliki Penilai</p>
-                        <p class="text-xs mt-1">Tidak ada guru aktif yang belum ditugaskan pada periode ini.</p>
-                    </div>
-                @else
-                    <form action="{{ route('admin.penugasan.store', ['kode' => $sekolah->kode]) }}" method="POST">
-                        @csrf
-                        <input type="hidden" name="periode_id" value="{{ $periode->id }}">
-
-                        <div class="space-y-4 mb-5">
-                            {{-- 1. Pilih Supervisor --}}
-                            <div>
-                                <label class="block text-sm font-bold mb-1" style="color: var(--color-navy-900);">
-                                    1. Pilih Supervisor Penilai *
-                                </label>
-                                <select name="penilai_id" required class="form-input text-sm w-full">
-                                    <option value="">-- Pilih Salah Satu Supervisor --</option>
-                                    @foreach($supervisors as $spv)
-                                        <option value="{{ $spv->id }}">{{ $spv->nama }} (NIP: {{ $spv->nip ?: '-' }})</option>
-                                    @endforeach
-                                </select>
-                                <p class="text-xs text-gray-500 mt-1">Hanya pengguna aktif yang memiliki peran Supervisor yang dapat dipilih.</p>
-                            </div>
-
-                            {{-- 2. Centang Guru --}}
-                            <div>
-                                <div class="flex items-center justify-between mb-2">
-                                    <label class="block text-sm font-bold" style="color: var(--color-navy-900);">
-                                        2. Centang Guru yang Akan Dinilai * ({{ $guruBelum->count() }} guru tersedia)
-                                    </label>
-                                    <label class="inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
-                                        <input type="checkbox" x-model="pilihSemua" @change="toggleSemua()" class="rounded text-orange-600 focus:ring-orange-500">
-                                        <span>Pilih Semua</span>
-                                    </label>
-                                </div>
-
-                                <div class="max-h-64 overflow-y-auto p-3 rounded-lg border divide-y"
-                                     style="border-color: var(--color-border); background-color: var(--color-cream);">
-                                    @foreach($guruBelum as $guru)
-                                        <label class="flex items-center gap-3 py-2 cursor-pointer hover:bg-white/60 px-2 rounded transition-colors">
-                                            <input type="checkbox" name="guru_ids[]" value="{{ $guru->id }}" class="checkbox-guru rounded text-orange-600 focus:ring-orange-500">
-                                            <div class="text-xs">
-                                                <p class="font-bold text-gray-900">{{ $guru->nama }}</p>
-                                                <p class="text-gray-500">NIP: {{ $guru->nip ?: '-' }} &bull; Username: {{ $guru->username }}</p>
-                                            </div>
-                                        </label>
-                                    @endforeach
-                                </div>
-                                <p class="text-xs text-gray-500 mt-1">Saat disimpan, sistem akan otomatis membuat 4 baris penilaian supervisi (KBM, Administrasi, Pengelolaan Kelas, Perencanaan) berstatus Draf awal (Belum dinilai).</p>
-                            </div>
-                        </div>
-
-                        <div class="flex justify-end gap-2 pt-3 border-t" style="border-color: var(--color-border);">
-                            <button type="button" @click="modalTambah = false" class="px-4 py-2 text-sm rounded border border-gray-300">Batal</button>
-                            <x-button type="submit" variant="tambah">Tugaskan Guru Terpilih</x-button>
-                        </div>
-                    </form>
-                @endif
-            </div>
-        </div>
-    @endif
 
 </x-app-layout>

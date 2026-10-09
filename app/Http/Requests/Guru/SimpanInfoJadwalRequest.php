@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Guru;
 
+use App\Models\Penugasan;
+use App\Models\Periode;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -22,7 +24,26 @@ class SimpanInfoJadwalRequest extends FormRequest
      */
     public function rules(): array
     {
+        $guru = $this->user();
+        $periodeAktif = Periode::where('status', 'aktif')->first();
+
+        $penugasanAda = false;
+        if ($guru && $periodeAktif) {
+            $penugasanAda = Penugasan::where('periode_id', $periodeAktif->id)
+                ->where('guru_id', $guru->id)
+                ->exists();
+        }
+
         return [
+            'penilai_id' => [
+                $penugasanAda ? 'nullable' : 'required',
+                'integer',
+                function ($attribute, $value, $fail) use ($guru) {
+                    if ($value && $guru && (int) $value === (int) $guru->id) {
+                        $fail('Anda tidak dapat memilih diri Anda sendiri sebagai supervisor penilai.');
+                    }
+                },
+            ],
             'kelas' => ['required', 'string', 'max:50'],
             'semester' => ['nullable', 'string', 'max:20'],
             'fase' => ['nullable', 'string', 'max:20'],
@@ -45,6 +66,7 @@ class SimpanInfoJadwalRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'penilai_id' => 'Supervisor Penilai',
             'kelas' => 'Kelas',
             'semester' => 'Semester',
             'fase' => 'Fase',
@@ -66,6 +88,7 @@ class SimpanInfoJadwalRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'penilai_id.required' => 'Silakan pilih salah satu supervisor penilai.',
             'kelas.required' => 'Kelas wajib diisi.',
             'mata_pelajaran.required' => 'Mata pelajaran wajib diisi.',
             'jadwal.*.tanggal.date' => 'Format tanggal supervisi tidak valid.',

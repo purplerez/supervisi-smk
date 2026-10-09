@@ -12,7 +12,7 @@
                             <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
                             <path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" />
                         </svg>
-                        {{ $canEdit ? 'Isi Informasi & Jadwal' : 'Lihat Informasi & Jadwal' }}
+                        {{ $canEdit ? 'Ubah Informasi & Jadwal' : 'Lihat Informasi & Jadwal' }}
                     </x-button>
                     <x-button variant="primer" href="{{ route('guru.rapor', ['kode' => $sekolah->kode, 'periode' => $penugasan->periode_id]) }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
@@ -21,6 +21,13 @@
                         Rapor Supervisi
                     </x-button>
                 </div>
+            @elseif($periodeAktif)
+                <x-button variant="tambah" href="{{ route('guru.info-jadwal', ['kode' => $sekolah->kode]) }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z" />
+                    </svg>
+                    Pilih Supervisor & Ajukan
+                </x-button>
             @endif
         </x-slot:actions>
     </x-page-header>
@@ -43,7 +50,7 @@
         </x-card>
 
     @elseif(!$penugasan)
-        {{-- Kondisi 2: Ada Periode Aktif tapi Guru Belum Ditugaskan --}}
+        {{-- Kondisi 2: Ada Periode Aktif tapi Guru Belum Memilih Supervisor / Belum Mengajukan --}}
         <x-card class="p-8 text-center max-w-2xl mx-auto">
             <div class="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4" style="background-color: #FFF3D6; color: #8A5A00;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 20 20" fill="currentColor">
@@ -53,15 +60,23 @@
             <h2 class="text-xl font-bold mb-2" style="color: var(--color-navy-900);">
                 Halo, Bapak/Ibu {{ $guru->nama }}
             </h2>
-            <p class="text-base leading-relaxed mb-4" style="color: var(--color-ink);">
+            <p class="text-base leading-relaxed mb-3" style="color: var(--color-ink);">
                 Anda belum memiliki penugasan supervisi pada periode aktif saat ini (<strong>{{ $periodeAktif->nama }}</strong>).
             </p>
             <p class="text-sm leading-relaxed mb-6" style="color: var(--color-muted);">
-                Admin sekolah atau koordinator kurikulum sedang dalam proses pemetaan penilai. Silakan hubungi admin sekolah jika Anda memerlukan konfirmasi jadwal supervisi.
+                Silakan pilih supervisor penilai Anda, lalu ajukan mata pelajaran dan kelas yang akan diobservasi dalam kegiatan supervisi akademik.
             </p>
-            <x-button variant="sekunder" href="{{ route('guru.riwayat', ['kode' => $sekolah->kode]) }}">
-                Buka Riwayat Supervisi Sebelumnya
-            </x-button>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <x-button variant="tambah" href="{{ route('guru.info-jadwal', ['kode' => $sekolah->kode]) }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z" />
+                    </svg>
+                    Pilih Supervisor & Ajukan Supervisi &rarr;
+                </x-button>
+                <x-button variant="sekunder" href="{{ route('guru.riwayat', ['kode' => $sekolah->kode]) }}">
+                    Buka Riwayat Sebelumnya
+                </x-button>
+            </div>
         </x-card>
 
     @else

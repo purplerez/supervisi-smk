@@ -96,10 +96,11 @@ Role disimpan di tabel `user_roles` (satu user boleh banyak role). **Jangan** pa
 | CRUD guru, import Excel |  | ✔ |  |  |
 | Pilih/cabut role supervisor dan guru |  | ✔ |  |  |
 | CRUD periode |  | ✔ |  |  |
-| Penugasan, surat tugas (DOCX) |  | ✔ |  |  |
+| Pengajuan & pemilihan supervisor mandiri |  |  |  | ✔ (pilih supervisor & ajukan kelas/mapel) |
+| Monitoring penugasan, ganti penilai sebelum dinilai, surat tugas (DOCX) |  | ✔ |  |  |
 | Rekap, laporan, daftar "belum punya penilai" |  | ✔ |  |  |
 | Lihat guru yang ditugaskan |  |  | ✔ (miliknya) |  |
-| Isi informasi kelas/mapel/CP/jadwal tiap periode |  |  |  | ✔ (dirinya) |
+| Isi & perbarui informasi kelas/mapel/CP/jadwal |  |  |  | ✔ (dirinya, sebelum dinilai) |
 | Nilai (draft/direvisi) dan finalisasi |  |  | ✔ (jika penilainya) |  |
 | Buka kunci penilaian final (alasan wajib) |  | ✔ |  |  |
 | Cetak hasil penilaian |  | ✔ | ✔ (miliknya) | ✔ (final, dirinya) |
@@ -160,7 +161,12 @@ jadwal_supervisi
 
 Guru mengisi ulang kelas, mata pelajaran, CP, dan jadwal pada tiap periode. Tidak ada data yang disalin otomatis dari periode sebelumnya.
 
-**Pengunci informasi (default, perlu konfirmasi):** guru dapat mengubah informasi dan jadwal selama keempat penilaian masih `belum`. Setelah salah satu penilaian dimulai, informasi dikunci bagi guru; admin dan penilai tetap dapat mengubahnya. Tujuannya agar hasil cetak tidak berbeda dari data yang dinilai.
+**Alur penugasan mandiri oleh guru:**
+1. Guru login ke akun sekolah pada periode aktif. Jika belum memiliki penugasan, guru diarahkan untuk memilih supervisor penilai dari daftar supervisor aktif yang tersedia.
+2. Bersamaan dengan memilih supervisor, guru mengajukan kelas / rombel dan mata pelajaran (serta rincian CP, materi, dan usulan jadwal).
+3. Saat disimpan, penugasan langsung aktif dan 4 baris penilaian (`belum`) otomatis terbentuk.
+4. Pilihan supervisor langsung terkunci bagi guru (hanya admin yang dapat mengganti penilai jika keempat penilaian masih `belum`).
+5. Guru bebas mengubah kelas, mata pelajaran, CP, dan jadwal selama keempat penilaian masih `belum`. Setelah salah satu penilaian dimulai (status `draft` / `final` / `direvisi`), formulir dikunci penuh (hanya-baca) bagi guru demi integritas data hasil supervisi.
 
 ### 3.3 Instrumen (dinamis, berversi)
 

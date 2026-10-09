@@ -538,4 +538,37 @@ describe('Validasi lintas-sekolah dan isolasi tenant penugasan', function () {
             ]))
             ->assertNotFound();
     });
+
+    it('halaman penugasan admin tidak menampilkan tombol tambah penugasan dan halaman belum-dinilai menampilkan status belum mengajukan', function () {
+        extract(setupLingkunganSekolah());
+
+        $periode = Periode::create([
+            'sekolah_id' => $sekolah->id,
+            'nama' => 'Periode Supervisi Aktif',
+            'tahun_ajaran' => '2026/2027',
+            'tanggal_mulai' => now()->toDateString(),
+            'tanggal_selesai' => now()->addMonth()->toDateString(),
+            'status' => 'aktif',
+        ]);
+
+        // Akses halaman manajemen penugasan oleh Admin
+        $responseIndex = $this->actingAs($admin)
+            ->withSession(['active_role' => 'admin', 'sekolah_kode' => $sekolah->kode])
+            ->get(route('admin.penugasan.index', ['kode' => $sekolah->kode, 'periode_id' => $periode->id]));
+
+        $responseIndex->assertOk();
+        // Tombol Tambah Penugasan tidak boleh ada di halaman admin
+        $responseIndex->assertDontSee('Tambah Penugasan');
+        $responseIndex->assertDontSee('Tugaskan Guru Sekarang');
+
+        // Akses halaman daftar guru belum dinilai
+        $responseBelum = $this->actingAs($admin)
+            ->withSession(['active_role' => 'admin', 'sekolah_kode' => $sekolah->kode])
+            ->get(route('admin.penugasan.belum-dinilai', ['kode' => $sekolah->kode, 'periode_id' => $periode->id]));
+
+        $responseBelum->assertOk();
+        // Menampilkan status Belum Mengajukan dan tidak ada tombol + Tugaskan
+        $responseBelum->assertSee('Belum Mengajukan');
+        $responseBelum->assertDontSee('+ Tugaskan');
+    });
 });

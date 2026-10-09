@@ -393,3 +393,134 @@ test('akses lintas-tenant: guru sekolah A mencoba mengakses data sekolah B mengh
 
     $resRaporB->assertNotFound();
 });
+
+// =============================================================================
+// ALUR BARU: PENGAJUAN SUPERVISI MANDIRI OLEH GURU
+// =============================================================================
+
+test('guru yang belum ditugaskan dapat membuka halaman pengajuan supervisi dan melihat daftar supervisor', function () {
+    $data = setupGuruEnvironment();
+
+    // Guru B belum memiliki penugasan
+    $response = $this->actingAs($data['guruB'])
+        ->withSession(['active_role' => 'guru', 'sekolah_kode' => $data['sekolah']->kode])
+        ->get(route('guru.info-jadwal', ['kode' => $data['sekolah']->kode]));
+
+    $response->assertOk();
+    $response->assertSee('Pengajuan Supervisi Akademik');
+    $response->assertSee('Pilih Supervisor');
+    // Supervisor dan Kepala Sekolah (yang berperan supervisor) muncul dalam pilihan
+    $response->assertSee($data['supervisor']->nama);
+    $response->assertSee($data['kepalaSekolah']->nama);
+});
+
+test('guru berhasil mengajukan supervisi mandiri: memilih supervisor, mengisi kelas dan mapel', function () {
+    $data = setupGuruEnvironment();
+
+    $jenisKbm = JenisInstrumen::where('kode', 'kbm')->first();
+
+    $payload = [
+        'penilai_id' => $data['supervisor']->id,
+        'kelas' => 'XI TJKT 2',
+        'semester' => 'Ganjil',
+        'fase' => 'F (Kelas XI & XII)',
+        'mata_pelajaran' => 'Keamanan Jaringan Komputer',
+        'elemen' => 'Firewall & VPN',
+        'cp' => 'Memahami konfigurasi firewall dan pengamanan jaringan kabel.',
+        'catatan' => 'Observasi di Lab Jaringan.',
+        'jadwal' => [
+            $jenisKbm->id => [
+                'tanggal' => '2026-10-15',
+                'jam_mulai' => '09:00',
+                'jam_selesai' => '10:30',
+            ],
+        ],
+    ];
+
+    $response = $this->actingAs($data['guruB'])
+        ->withSession(['active_role' => 'guru', 'sekolah_kode' => $data['sekolah']->kode])
+        ->post(route('guru.info-jadwal.simpan', ['kode' => $data['sekolah']->kode]), $payload);
+
+    $response->assertRedirect(route('guru.dashboard', ['kode' => $data['sekolah']->kode]));
+    $response->assertSessionHas('sukses');
+
+    // Cek bahwa record Penugasan terbentuk untuk Guru B
+    $penugasanB = Penugasan::where('periode_id', $data['periodeAktif']->id)
+        ->where('guru_id', $data['guruB']->id)
+        ->first();
+
+    expect($penugasanB)->not->toBeNull();
+    expect($penugasanB->penilai_id)->toBe($data['supervisor']->id);
+
+    // Cek 4 baris penilaian otomatis dibuat dengan status belum
+    $penilaian = Penilaian::where('penugasan_id', $penugasanB->id)->get();
+    expect($penilaian)->toHaveCount(4);
+    foreach ($penilaian as $pen) {
+        expect($pen->status)->toBe('belum');
+    }
+
+    // Cek InfoSupervisi dan JadwalSupervisi tersimpan
+    expect($penugasanB->infoSupervisi)->not->toBeNull();
+    expect($penugasanB->infoSupervisi->kelas)->toBe('XI TJKT 2');
+    expect($penugasanB->infoSupervisi->mata_pelajaran)->toBe('Keamanan Jaringan Komputer');
+
+    $jadwal = $penugasanB->jadwalSupervisi()->where('jenis_instrumen_id', $jenisKbm->id)->first();
+    expect($jadwal)->not->toBeNull();
+    expect($jadwal->tanggal->format('Y-m-d'))->toBe('2026-10-15');
+});
+
+test('guru ditolak jika mencoba memilih dirinya sendiri sebagai supervisor penilai', function () {
+    $data = setupGuruEnvironment();
+
+    // Berikan peran supervisor kepada Guru B (sehingga dia guru sekaligus supervisor)
+    $data['guruB']->roles()->create(['sekolah_id' => $data['sekolah']->id, 'role' => 'supervisor']);
+
+    $payload = [
+        'penilai_id' => $data['guruB']->id, // memilih diri sendiri
+        'kelas' => 'X TKJ 1',
+        'mata_pelajaran' => 'Dasar TKJ',
+    ];
+
+    $response = $this->actingAs($data['guruB'])
+        ->withSession(['active_role' => 'guru', 'sekolah_kode' => $data['sekolah']->kode])
+        ->post(route('guru.info-jadwal.simpan', ['kode' => $data['sekolah']->kode]), $payload);
+
+    $response->assertSessionHasErrors('penilai_id');
+
+    // Penugasan tidak boleh dibuat
+    expect(Penugasan::where('guru_id', $data['guruB']->id)->exists())->toBeFalse();
+});
+
+test('pilihan supervisor terkunci bagi guru setelah diajukan', function () {
+    $data = setupGuruEnvironment();
+    // Guru A sudah memiliki penugasan dengan supervisor NURHAYATI ($data['supervisor'])
+    $penugasanA = $data['penugasanA'];
+
+    // Buka halaman info-jadwal: melihat supervisor telah ditetapkan & terkunci
+    $resView = $this->actingAs($data['guruA'])
+        ->withSession(['active_role' => 'guru', 'sekolah_kode' => $data['sekolah']->kode])
+        ->get(route('guru.info-jadwal', ['kode' => $data['sekolah']->kode]));
+
+    $resView->assertOk();
+    $resView->assertSee('Telah Ditetapkan');
+    $resView->assertSee($data['supervisor']->nama);
+    $resView->assertSee('Terkunci');
+
+    // Guru A mencoba mengubah data tapi mengirim penilai_id lain (misal kepala sekolah)
+    $payload = [
+        'penilai_id' => $data['kepalaSekolah']->id,
+        'kelas' => 'XII RPL 3',
+        'mata_pelajaran' => 'Pemrograman Basis Data',
+    ];
+
+    $response = $this->actingAs($data['guruA'])
+        ->withSession(['active_role' => 'guru', 'sekolah_kode' => $data['sekolah']->kode])
+        ->post(route('guru.info-jadwal.simpan', ['kode' => $data['sekolah']->kode]), $payload);
+
+    $response->assertRedirect(route('guru.info-jadwal', ['kode' => $data['sekolah']->kode]));
+
+    // Penilai tetap tidak berubah (tetap supervisor awal)
+    expect($penugasanA->fresh()->penilai_id)->toBe($data['supervisor']->id);
+    // Namun kelas dan mata pelajaran berhasil diperbarui
+    expect($penugasanA->fresh()->infoSupervisi->kelas)->toBe('XII RPL 3');
+});

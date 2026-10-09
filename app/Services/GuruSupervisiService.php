@@ -4,12 +4,85 @@ namespace App\Services;
 
 use App\Models\Penugasan;
 use App\Models\Periode;
+use App\Models\Sekolah;
 use App\Models\User;
 use DomainException;
 use Illuminate\Database\Eloquent\Collection;
 
 class GuruSupervisiService
 {
+    public function __construct(
+        private readonly PenugasanService $penugasanService,
+    ) {}
+
+    /**
+     * Ambil daftar supervisor aktif di sekolah yang dapat dipilih oleh guru (tidak termasuk diri sendiri).
+     *
+     * @return Collection<int, User>
+     */
+    public function ambilSupervisorsTersedia(Sekolah $sekolah, User $guru): Collection
+    {
+        return User::where('sekolah_id', $sekolah->id)
+            ->where('aktif', true)
+            ->where('id', '!=', $guru->id)
+            ->whereHas('roles', fn ($q) => $q->where('role', 'supervisor'))
+            ->orderBy('nama', 'asc')
+            ->get();
+    }
+
+    /**
+     * Ajukan supervisi oleh guru secara mandiri:
+     * Menetapkan supervisor penilai, membuat 4 baris penilaian awal ('belum'),
+     * serta menyimpan informasi kelas, mata pelajaran, dan usulan jadwal observasi.
+     *
+     * @param  array{
+     *     kelas: string,
+     *     semester?: ?string,
+     *     fase?: ?string,
+     *     mata_pelajaran: string,
+     *     elemen?: ?string,
+     *     cp?: ?string,
+     *     catatan?: ?string
+     * }  $infoData
+     * @param  array<int, array{
+     *     tanggal?: ?string,
+     *     jam_mulai?: ?string,
+     *     jam_selesai?: ?string
+     * }>  $jadwalData
+     * @return array{penugasan: Penugasan, peringatan: array<string>}
+     */
+    public function ajukanSupervisi(
+        User $guru,
+        Periode $periode,
+        int $penilaiId,
+        array $infoData,
+        array $jadwalData
+    ): array {
+        if ($periode->isDitutup()) {
+            throw new DomainException('Tidak dapat mengajukan supervisi pada periode yang telah ditutup.');
+        }
+
+        $sudahAda = Penugasan::where('periode_id', $periode->id)
+            ->where('guru_id', $guru->id)
+            ->exists();
+
+        if ($sudahAda) {
+            throw new DomainException('Anda sudah memiliki penugasan supervisi pada periode ini.');
+        }
+
+        // 1. Buat penugasan + 4 baris penilaian otomatis
+        $hasil = $this->penugasanService->buatPenugasan($periode, $penilaiId, [$guru->id]);
+        $penugasan = $hasil['penugasan'][0];
+
+        // 2. Simpan informasi kelas/mapel dan usulan jadwal
+        $this->simpanInfoDanJadwal($penugasan, $infoData, $jadwalData, $guru);
+
+        return [
+            'penugasan' => $penugasan->fresh(['periode', 'penilai', 'infoSupervisi', 'jadwalSupervisi.jenisInstrumen', 'penilaian.jenisInstrumen']),
+            'peringatan' => $hasil['peringatan'],
+        ];
+    }
+
     /**
      * Ambil penugasan guru pada periode aktif di sekolah saat ini.
      */
