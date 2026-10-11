@@ -28,6 +28,20 @@ class FormPenilaian extends Component
      */
     public array $catatanButir = [];
 
+    /**
+     * Array bukti amatan per butir (khusus observasi pembelajaran) [butir_id => bukti].
+     *
+     * @var array<int, string|null>
+     */
+    public array $buktiPengamatan = [];
+
+    /**
+     * Data kualitatif tambahan (misal matriks rencana pengembangan diri).
+     *
+     * @var array<string, mixed>
+     */
+    public array $dataKualitatif = [];
+
     public ?string $catatan = null;
 
     public ?string $tindakLanjut = null;
@@ -47,6 +61,7 @@ class FormPenilaian extends Component
             'penugasan.guru',
             'penugasan.penilai',
             'penugasan.periode',
+            'penugasan.infoSupervisi',
             'jenisInstrumen',
             'versiInstrumen.bagian.butir',
             'penilaianButir',
@@ -68,20 +83,43 @@ class FormPenilaian extends Component
             $this->penilaian->loadMissing(['versiInstrumen.bagian.butir', 'penilaianButir']);
         }
 
-        // Inisialisasi semua butir instrumen ke array skor dan catatan
+        // Inisialisasi semua butir instrumen ke array skor, catatan, dan bukti
         if ($this->penilaian->versiInstrumen) {
             foreach ($this->penilaian->versiInstrumen->bagian as $bagian) {
                 foreach ($bagian->butir as $butir) {
                     $this->skor[$butir->id] = null;
                     $this->catatanButir[$butir->id] = null;
+                    $this->buktiPengamatan[$butir->id] = null;
                 }
             }
         }
 
-        // Isi form dengan data yang sudah tersimpan
+        // Isi form dengan data butir yang sudah tersimpan
         foreach ($this->penilaian->penilaianButir as $item) {
             $this->skor[$item->butir_instrumen_id] = $item->skor;
             $this->catatanButir[$item->butir_instrumen_id] = $item->catatan;
+        }
+
+        // Load data kualitatif tambahan jika ada
+        $this->dataKualitatif = $this->penilaian->data_kualitatif ?? [];
+        if (isset($this->dataKualitatif['bukti']) && is_array($this->dataKualitatif['bukti'])) {
+            $this->buktiPengamatan = $this->dataKualitatif['bukti'];
+        }
+
+        // Inisialisasi default matriks aksi rencana pengembangan diri jika kosong
+        if ($this->penilaian->jenisInstrumen?->kode === 'rencana_pengembangan_diri') {
+            if (empty($this->dataKualitatif['rencana']) || ! is_array($this->dataKualitatif['rencana'])) {
+                $this->dataKualitatif['rencana'] = [
+                    [
+                        'aktivitas' => '',
+                        'tujuan' => '',
+                        'ukuran' => '',
+                        'dukungan' => '',
+                        'waktu' => '',
+                        'status' => 'Rencana',
+                    ],
+                ];
+            }
         }
 
         $this->catatan = $this->penilaian->catatan;
@@ -98,6 +136,53 @@ class FormPenilaian extends Component
         }
 
         $this->skor[(int) $butirId] = (int) $skorValue;
+    }
+
+    /**
+     * Tambah baris baru pada matriks rencana aksi pengembangan diri.
+     */
+    public function tambahBarisRencana(): void
+    {
+        if ($this->penilaian->isFinal()) {
+            return;
+        }
+
+        $this->dataKualitatif['rencana'][] = [
+            'aktivitas' => '',
+            'tujuan' => '',
+            'ukuran' => '',
+            'dukungan' => '',
+            'waktu' => '',
+            'status' => 'Rencana',
+        ];
+    }
+
+    /**
+     * Hapus baris pada matriks rencana aksi pengembangan diri.
+     */
+    public function hapusBarisRencana(int $index): void
+    {
+        if ($this->penilaian->isFinal()) {
+            return;
+        }
+
+        if (isset($this->dataKualitatif['rencana'][$index])) {
+            unset($this->dataKualitatif['rencana'][$index]);
+            $this->dataKualitatif['rencana'] = array_values($this->dataKualitatif['rencana']);
+        }
+    }
+
+    /**
+     * Kumpulkan payload data kualitatif lengkap.
+     */
+    private function siapkanDataKualitatif(): array
+    {
+        $payload = $this->dataKualitatif;
+        if (! empty($this->buktiPengamatan)) {
+            $payload['bukti'] = $this->buktiPengamatan;
+        }
+
+        return $payload;
     }
 
     /**
@@ -124,7 +209,8 @@ class FormPenilaian extends Component
                 $this->catatanButir,
                 $this->catatan,
                 $this->tindakLanjut,
-                $user
+                $user,
+                $this->siapkanDataKualitatif()
             );
 
             $this->penilaian->refresh();
@@ -183,7 +269,8 @@ class FormPenilaian extends Component
                 $this->catatanButir,
                 $this->catatan,
                 $this->tindakLanjut,
-                $user
+                $user,
+                $this->siapkanDataKualitatif()
             );
 
             // Eksekusi finalisasi
@@ -202,14 +289,22 @@ class FormPenilaian extends Component
     }
 
     /**
-     * Hitung butir yang sudah terisi skor >= 1.
+     * Hitung butir yang sudah terisi.
      */
     public function getJumlahTerisiProperty(): int
     {
         $jumlah = 0;
-        foreach ($this->skor as $s) {
-            if ($s !== null && $s !== '' && (int) $s >= 1) {
-                $jumlah++;
+        if ($this->penilaian->isKuantitatif()) {
+            foreach ($this->skor as $s) {
+                if ($s !== null && $s !== '') {
+                    $jumlah++;
+                }
+            }
+        } else {
+            foreach ($this->catatanButir as $c) {
+                if ($c !== null && trim($c) !== '') {
+                    $jumlah++;
+                }
             }
         }
 
@@ -236,6 +331,7 @@ class FormPenilaian extends Component
         $isReadonly = $this->penilaian->isFinal() || ($this->penilaian->penugasan?->periode?->isDitutup() ?? false);
 
         return view('livewire.supervisor.form-penilaian', [
+            'penilaian' => $this->penilaian,
             'bagianList' => $bagianList,
             'isReadonly' => $isReadonly,
         ]);

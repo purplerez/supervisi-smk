@@ -25,7 +25,7 @@ class LaporanKetuntasanExport implements FromCollection, ShouldAutoSize, WithHea
 
     /**
      * Ambil data penugasan menggunakan Eloquent Model agar global scope tenant berlaku.
-     * Mengurutkan berdasarkan ketuntasan (selesai 4/4 terlebih dahulu) lalu nama guru.
+     * Mengurutkan berdasarkan ketuntasan (selesai 5/5 terlebih dahulu) lalu nama guru.
      */
     public function collection(): Collection
     {
@@ -43,9 +43,17 @@ class LaporanKetuntasanExport implements FromCollection, ShouldAutoSize, WithHea
         $items = $query->get();
 
         if ($this->statusFilter === 'selesai') {
-            $items = $items->filter(fn ($item) => $item->penilaian->where('status', 'final')->count() === 4);
+            $items = $items->filter(function ($item) {
+                $total = $item->penilaian->count();
+
+                return $total > 0 && $item->penilaian->where('status', 'final')->count() === $total;
+            });
         } elseif ($this->statusFilter === 'belum_selesai') {
-            $items = $items->filter(fn ($item) => $item->penilaian->where('status', 'final')->count() < 4);
+            $items = $items->filter(function ($item) {
+                $total = $item->penilaian->count();
+
+                return $total === 0 || $item->penilaian->where('status', 'final')->count() < $total;
+            });
         }
 
         // Urutkan: jumlah final terbanyak (descending), lalu nama guru (ascending)

@@ -25,16 +25,15 @@ trait HasLaporanSupervisiMapping
             'Nama Guru',
             'NIP',
             'Supervisor Penilai',
-            'Nilai KBM',
-            'Predikat KBM',
-            'Nilai Administrasi',
-            'Predikat Administrasi',
-            'Nilai Pengelolaan Kelas',
-            'Predikat Pengelolaan Kelas',
-            'Nilai Perencanaan',
-            'Predikat Perencanaan',
+            'Pra-Observasi',
+            'Nilai Telaah Perencanaan',
+            'Predikat Telaah Perencanaan',
+            'Nilai Observasi KBM',
+            'Predikat Observasi KBM',
+            'Refleksi Pasca-Observasi',
+            'Rencana Pengembangan Diri',
             'Rata-rata Nilai',
-            'Jumlah Final (n/4)',
+            'Jumlah Final (n/5)',
             'Status',
         ];
     }
@@ -50,55 +49,52 @@ trait HasLaporanSupervisiMapping
     {
         $this->rowNumber++;
 
-        // Kelompokkan 4 penilaian berdasarkan kode jenis instrumen
+        // Kelompokkan 5 penilaian berdasarkan kode jenis instrumen
         $penilaianByKode = $penugasan->penilaian->keyBy(function ($p) {
             return $p->jenisInstrumen->kode ?? '';
         });
 
-        $penKbm = $penilaianByKode->get('kbm');
-        $penAdm = $penilaianByKode->get('administrasi');
-        $penKelas = $penilaianByKode->get('pengelolaan_kelas');
-        $penRencana = $penilaianByKode->get('perencanaan');
+        $penPra = $penilaianByKode->get('pra_observasi');
+        $penTelaah = $penilaianByKode->get('telaah_perencanaan');
+        $penObs = $penilaianByKode->get('observasi_pembelajaran');
+        $penRefleksi = $penilaianByKode->get('refleksi_pasca_observasi');
+        $penRpd = $penilaianByKode->get('rencana_pengembangan_diri');
 
-        // Nilai dan predikat hanya tampil jika status final
-        $nilaiKbm = ($penKbm && $penKbm->isFinal()) ? (float) $penKbm->nilai : '';
-        $predikatKbm = ($penKbm && $penKbm->isFinal()) ? (string) $penKbm->predikat : '';
+        $statusPra = $penPra ? ($penPra->isFinal() ? 'Selesai' : ucfirst($penPra->status)) : '-';
+        $nilaiTelaah = ($penTelaah && $penTelaah->isFinal()) ? (float) $penTelaah->nilai : '';
+        $predikatTelaah = ($penTelaah && $penTelaah->isFinal()) ? (string) $penTelaah->predikat : '';
+        $nilaiObs = ($penObs && $penObs->isFinal()) ? (float) $penObs->nilai : '';
+        $predikatObs = ($penObs && $penObs->isFinal()) ? (string) $penObs->predikat : '';
+        $statusRefleksi = $penRefleksi ? ($penRefleksi->isFinal() ? 'Selesai' : ucfirst($penRefleksi->status)) : '-';
+        $statusRpd = $penRpd ? ($penRpd->isFinal() ? 'Selesai' : ucfirst($penRpd->status)) : '-';
 
-        $nilaiAdm = ($penAdm && $penAdm->isFinal()) ? (float) $penAdm->nilai : '';
-        $predikatAdm = ($penAdm && $penAdm->isFinal()) ? (string) $penAdm->predikat : '';
-
-        $nilaiKelas = ($penKelas && $penKelas->isFinal()) ? (float) $penKelas->nilai : '';
-        $predikatKelas = ($penKelas && $penKelas->isFinal()) ? (string) $penKelas->predikat : '';
-
-        $nilaiRencana = ($penRencana && $penRencana->isFinal()) ? (float) $penRencana->nilai : '';
-        $predikatRencana = ($penRencana && $penRencana->isFinal()) ? (string) $penRencana->predikat : '';
-
-        // Hitung rata-rata dan progres final (n/4)
+        // Hitung rata-rata instrumen kuantitatif yang final dan progres final (n/5)
         $penilaianFinalList = $penugasan->penilaian->filter(fn ($p) => $p->isFinal());
         $finalCount = $penilaianFinalList->count();
+        $kuantitatifFinal = $penilaianFinalList->filter(fn ($p) => $p->nilai !== null);
 
         $rataRata = '';
-        if ($finalCount > 0) {
-            $rataRata = round($penilaianFinalList->sum('nilai') / $finalCount, 2);
+        if ($kuantitatifFinal->count() > 0) {
+            $rataRata = round($kuantitatifFinal->sum('nilai') / $kuantitatifFinal->count(), 2);
         }
 
-        $status = $finalCount === 4 ? 'Selesai' : 'Belum Selesai';
+        $totalCount = $penugasan->penilaian->count() ?: 5;
+        $status = ($finalCount === $totalCount && $totalCount > 0) ? 'Selesai' : 'Belum Selesai';
 
         return [
             $this->rowNumber,
             $penugasan->guru->nama ?? '-',
             $penugasan->guru->nip ?: '-',
             $penugasan->penilai->nama ?? '-',
-            $nilaiKbm,
-            $predikatKbm,
-            $nilaiAdm,
-            $predikatAdm,
-            $nilaiKelas,
-            $predikatKelas,
-            $nilaiRencana,
-            $predikatRencana,
+            $statusPra,
+            $nilaiTelaah,
+            $predikatTelaah,
+            $nilaiObs,
+            $predikatObs,
+            $statusRefleksi,
+            $statusRpd,
             $rataRata,
-            "{$finalCount}/4",
+            "{$finalCount}/{$totalCount}",
             $status,
         ];
     }

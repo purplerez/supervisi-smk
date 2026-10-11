@@ -280,73 +280,138 @@
         </tr>
     </table>
 
-    {{-- TABEL BUTIR PENILAIAN PER BAGIAN --}}
-    <table class="content-table">
-        <thead>
-            <tr>
-                <th style="width: 6%;">No</th>
-                <th style="width: 62%;">Aspek / Butir Pengamatan</th>
-                <th style="width: 10%;">Skor</th>
-                <th style="width: 10%;">Maks</th>
-                <th style="width: 12%;">Catatan</th>
-            </tr>
-        </thead>
-        <tbody>
-            @php
-                $mapJawaban = $penilaian->penilaianButir->keyBy('butir_instrumen_id');
-                $nomorUrut = 1;
-            @endphp
-
-            @if($penilaian->versiInstrumen)
-                @foreach($penilaian->versiInstrumen->bagian as $bagian)
-                    <tr class="bagian-header">
-                        <td colspan="5">
-                            {{ $bagian->kode ? $bagian->kode . '. ' : '' }}{{ $bagian->judul }}
-                            @if($bagian->kategori) <span style="font-weight: normal; font-size: 8pt;">({{ $bagian->kategori }})</span> @endif
-                        </td>
-                    </tr>
-                    @foreach($bagian->butir as $butir)
-                        @php
-                            $jawaban = $mapJawaban->get($butir->id);
-                        @endphp
-                        <tr>
-                            <td class="text-center">{{ $nomorUrut++ }}</td>
-                            <td>{{ $butir->uraian }}</td>
-                            <td class="text-center" style="font-weight: bold;">{{ $jawaban?->skor ?? '-' }}</td>
-                            <td class="text-center">{{ $butir->skor_maks }}</td>
-                            <td style="font-size: 8pt; color: #4B5563;">{{ $jawaban?->catatan ?: '-' }}</td>
-                        </tr>
-                    @endforeach
-                @endforeach
-            @else
+    {{-- TABEL BUTIR PENILAIAN / MATRIKS AKSI --}}
+    @if($penilaian->jenisInstrumen?->kode === 'rencana_pengembangan_diri')
+        {{-- Tabel Khusus Matriks Rencana Pengembangan Diri --}}
+        <table class="content-table">
+            <thead>
                 <tr>
-                    <td colspan="5" class="text-center">Data versi instrumen tidak tersedia.</td>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 25%;">Aktivitas Pengembangan</th>
+                    <th style="width: 22%;">Tujuan yang Dicapai</th>
+                    <th style="width: 20%;">Ukuran Keberhasilan</th>
+                    <th style="width: 16%;">Dukungan Dibutuhkan</th>
+                    <th style="width: 12%;">Waktu</th>
                 </tr>
-            @endif
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @forelse($penilaian->data_kualitatif['rencana'] ?? [] as $idx => $r)
+                    <tr>
+                        <td class="text-center font-bold">{{ $idx + 1 }}</td>
+                        <td>{{ $r['aktivitas'] ?: '-' }}</td>
+                        <td>{{ $r['tujuan'] ?: '-' }}</td>
+                        <td>{{ $r['ukuran'] ?: '-' }}</td>
+                        <td>{{ $r['dukungan'] ?: '-' }}</td>
+                        <td class="text-center">{{ $r['waktu'] ?: '-' }}</td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="6" class="text-center">Belum ada baris rencana aktivitas.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    @else
+        <table class="content-table">
+            <thead>
+                <tr>
+                    <th style="width: 6%;">No</th>
+                    @if($penilaian->isKuantitatif())
+                        <th style="width: 50%;">Aspek / Butir Pengamatan</th>
+                        @if($penilaian->jenisInstrumen?->kode === 'observasi_pembelajaran')
+                            <th style="width: 20%;">Bukti Pembelajaran</th>
+                        @endif
+                        <th style="width: 8%;">Skor</th>
+                        <th style="width: 16%;">Catatan / Umpan Balik</th>
+                    @else
+                        <th style="width: 44%;">Aspek / Pertanyaan Reflektif</th>
+                        <th style="width: 50%;">Catatan Percakapan / Hasil Refleksi</th>
+                    @endif
+                </tr>
+            </thead>
+            <tbody>
+                @php
+                    $mapJawaban = $penilaian->penilaianButir->keyBy('butir_instrumen_id');
+                    $buktiMap = $penilaian->data_kualitatif['bukti'] ?? [];
+                    $nomorUrut = 1;
+                @endphp
 
-    {{-- REKAPITULASI SKOR & PREDIKAT --}}
-    <table class="rekap-box">
-        <thead>
-            <tr>
-                <th style="width: 25%;">Total Skor Perolehan</th>
-                <th style="width: 25%;">Total Skor Maksimal</th>
-                <th style="width: 25%;">Nilai Akhir (0 - 100)</th>
-                <th style="width: 25%;">Predikat</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td class="rekap-highlight">{{ $penilaian->total_skor }}</td>
-                <td class="rekap-highlight">{{ $penilaian->skor_maks }}</td>
-                <td class="rekap-highlight">{{ number_format($penilaian->nilai, 2) }}</td>
-                <td class="rekap-highlight" style="font-size: 13pt; color: #2E7D32;">
-                    {{ $penilaian->predikat }}
-                </td>
-            </tr>
-        </tbody>
-    </table>
+                @if($penilaian->versiInstrumen)
+                    @foreach($penilaian->versiInstrumen->bagian as $bagian)
+                        <tr class="bagian-header">
+                            <td colspan="{{ $penilaian->isKuantitatif() ? ($penilaian->jenisInstrumen?->kode === 'observasi_pembelajaran' ? 5 : 4) : 3 }}">
+                                {{ $bagian->kode ? $bagian->kode . '. ' : '' }}{{ $bagian->judul }}
+                                @if($bagian->kategori) <span style="font-weight: normal; font-size: 8pt;">({{ $bagian->kategori }})</span> @endif
+                            </td>
+                        </tr>
+                        @foreach($bagian->butir as $butir)
+                            @php
+                                $jawaban = $mapJawaban->get($butir->id);
+                            @endphp
+                            <tr>
+                                <td class="text-center">{{ $nomorUrut++ }}</td>
+                                <td style="white-space: pre-line; line-height: 1.4;">{!! nl2br(e($butir->uraian)) !!}</td>
+                                @if($penilaian->isKuantitatif())
+                                    @if($penilaian->jenisInstrumen?->kode === 'observasi_pembelajaran')
+                                        <td style="font-size: 8pt; color: #1F2937;">{{ $buktiMap[$butir->id] ?? '-' }}</td>
+                                    @endif
+                                    <td class="text-center" style="font-weight: bold; font-size: 10pt;">{{ $jawaban?->skor ?? '-' }}</td>
+                                    <td style="font-size: 8pt; color: #4B5563;">{{ $jawaban?->catatan ?: '-' }}</td>
+                                @else
+                                    <td style="font-size: 9pt; color: #1F2937;">{{ $jawaban?->catatan ?: '-' }}</td>
+                                @endif
+                            </tr>
+                        @endforeach
+                    @endforeach
+                @else
+                    <tr>
+                        <td colspan="4" class="text-center">Data versi instrumen tidak tersedia.</td>
+                    </tr>
+                @endif
+            </tbody>
+        </table>
+    @endif
+
+    {{-- REKAPITULASI SKOR (KUANTITATIF) ATAU STATUS (KUALITATIF) --}}
+    @if($penilaian->isKuantitatif())
+        <table class="rekap-box">
+            <thead>
+                <tr>
+                    <th style="width: 25%;">Total Skor Perolehan</th>
+                    <th style="width: 25%;">Total Skor Maksimal</th>
+                    <th style="width: 25%;">Nilai Akhir (0 - 100)</th>
+                    <th style="width: 25%;">Predikat</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="rekap-highlight">{{ $penilaian->total_skor }}</td>
+                    <td class="rekap-highlight">{{ $penilaian->skor_maks }}</td>
+                    <td class="rekap-highlight">{{ number_format($penilaian->nilai, 2) }}</td>
+                    <td class="rekap-highlight" style="font-size: 13pt; color: #2E7D32;">
+                        {{ $penilaian->predikat }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    @else
+        <table class="rekap-box">
+            <thead>
+                <tr>
+                    <th style="width: 50%;">Status Pelaksanaan</th>
+                    <th style="width: 50%;">Kesepakatan Supervisi</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="rekap-highlight" style="color: #2E7D32;">Terlaksana dan Lengkap</td>
+                    <td class="rekap-highlight" style="font-size: 9pt; font-weight: normal; color: #1F2937;">
+                        Disepakati bersama antara Guru dan Supervisor Penilai
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    @endif
 
     {{-- CATATAN & RENCANA TINDAK LANJUT --}}
     <table class="notes-table">

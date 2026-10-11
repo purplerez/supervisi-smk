@@ -210,10 +210,11 @@
                                                     @foreach($item->penilaian as $pen)
                                                         @php
                                                             $singkatan = match($pen->jenisInstrumen->kode ?? '') {
-                                                                'kbm' => 'KBM',
-                                                                'administrasi' => 'ADM',
-                                                                'pengelolaan_kelas' => 'KELAS',
-                                                                'perencanaan' => 'RENC',
+                                                                'pra_observasi' => 'PRA',
+                                                                'telaah_perencanaan' => 'TELAAH',
+                                                                'observasi_pembelajaran' => 'OBS',
+                                                                'refleksi_pasca_observasi' => 'REFL',
+                                                                'rencana_pengembangan_diri' => 'RPD',
                                                                 default => substr($pen->jenisInstrumen->nama ?? 'N', 0, 3)
                                                             };
                                                         @endphp

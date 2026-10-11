@@ -167,7 +167,7 @@
                                 <tr>
                                     <th class="py-3 px-4 font-bold">Guru & NIP</th>
                                     <th class="py-3 px-4 font-bold">Supervisor</th>
-                                    <th class="py-3 px-4 font-bold text-center">Status 4 Instrumen</th>
+                                    <th class="py-3 px-4 font-bold text-center">Status 5 Instrumen</th>
                                     <th class="py-3 px-4 font-bold text-center">Progres</th>
                                     <th class="py-3 px-4 font-bold text-center">Rata-rata</th>
                                     <th class="py-3 px-4 font-bold text-center">Status</th>
@@ -178,8 +178,10 @@
                                     @php
                                         $finalList = $item->penilaian->filter(fn($p) => $p->isFinal());
                                         $finalCount = $finalList->count();
-                                        $isSelesai = $finalCount === 4;
-                                        $rataRata = $finalCount > 0 ? round($finalList->sum('nilai') / $finalCount, 2) : null;
+                                        $totalInstrumen = $item->penilaian->count();
+                                        $isSelesai = $totalInstrumen > 0 && $finalCount === $totalInstrumen;
+                                        $kuantitatifFinal = $finalList->filter(fn($p) => $p->nilai !== null);
+                                        $rataRata = $kuantitatifFinal->count() > 0 ? round($kuantitatifFinal->sum('nilai') / $kuantitatifFinal->count(), 2) : null;
                                     @endphp
                                     <tr class="hover:bg-gray-50/60 transition-colors">
                                         {{-- Guru --}}
@@ -205,10 +207,11 @@
                                                 @foreach($item->penilaian as $pen)
                                                     @php
                                                         $singkatan = match($pen->jenisInstrumen->kode ?? '') {
-                                                            'kbm' => 'KBM',
-                                                            'administrasi' => 'ADM',
-                                                            'pengelolaan_kelas' => 'KELAS',
-                                                            'perencanaan' => 'RENC',
+                                                            'pra_observasi' => 'PRA',
+                                                            'telaah_perencanaan' => 'TELAAH',
+                                                            'observasi_pembelajaran' => 'OBS',
+                                                            'refleksi_pasca_observasi' => 'REFL',
+                                                            'rencana_pengembangan_diri' => 'RPD',
                                                             default => substr($pen->jenisInstrumen->nama ?? 'N', 0, 3)
                                                         };
                                                     @endphp
@@ -221,7 +224,7 @@
                                                         
                                                         <span class="px-2 py-0.5 font-semibold">
                                                             {{ $singkatan }}: {{ ucfirst($pen->status) }}
-                                                            @if($pen->isFinal()) ({{ number_format($pen->nilai, 0) }}) @endif
+                                                            @if($pen->isFinal() && $pen->nilai !== null) ({{ number_format($pen->nilai, 0) }}) @endif
                                                         </span>
 
                                                         @if($pen->isFinal())
@@ -254,11 +257,11 @@
                                             </div>
                                         </td>
 
-                                        {{-- Progres n/4 --}}
+                                        {{-- Progres n/5 --}}
                                         <td class="py-3.5 px-4 text-center">
                                             <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold
                                                 {{ $isSelesai ? 'bg-emerald-100 text-emerald-800' : 'bg-neutral-100 text-neutral-700' }}">
-                                                {{ $finalCount }}/4
+                                                {{ $finalCount }}/{{ $totalInstrumen ?: 5 }}
                                             </span>
                                         </td>
 

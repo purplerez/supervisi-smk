@@ -137,10 +137,10 @@
                     <div>
                         <span class="block text-xs uppercase font-semibold text-muted">Status Selesai</span>
                         <span class="text-lg font-bold text-navy-900">
-                            {{ $penugasan->penilaian->where('status', 'final')->count() }} / 4 Final
+                            {{ $penugasan->penilaian->where('status', 'final')->count() }} / {{ $penugasan->penilaian->count() }} Final
                         </span>
                     </div>
-                    @if($penugasan->penilaian->where('status', 'final')->count() === 4)
+                    @if($penugasan->penilaian->count() > 0 && $penugasan->penilaian->where('status', 'final')->count() === $penugasan->penilaian->count())
                         <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
                             Supervisi Lengkap
                         </span>
@@ -150,15 +150,15 @@
         </div>
     </div>
 
-    {{-- EMPAT TOMBOL INSTRUMEN (KBM, Administrasi, Pengelolaan Kelas, Perencanaan) --}}
+    {{-- LIMA TOMBOL INSTRUMEN RESMI SUPERVISI --}}
     <div class="space-y-4">
-        <h3 class="text-xl font-bold text-navy-900">Lembar Penilaian Supervisi (4 Instrumen)</h3>
-        <p class="text-muted text-[15px]">Klik instrumen di bawah untuk mengisi skor, memperbarui draft, atau melihat hasil finalisasi.</p>
+        <h3 class="text-xl font-bold text-navy-900">Lembar Penilaian Supervisi (5 Instrumen Resmi)</h3>
+        <p class="text-muted text-[15px]">Klik instrumen di bawah untuk mengisi dokumen, memperbarui draft, atau melihat hasil finalisasi.</p>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             @php
-                // Urutan standar 4 instrumen
-                $urutanKode = ['kbm', 'administrasi', 'pengelolaan_kelas', 'perencanaan'];
+                // Urutan standar 5 instrumen resmi Kemendikdasmen / BBGTK Jatim
+                $urutanKode = ['pra_observasi', 'telaah_perencanaan', 'observasi_pembelajaran', 'refleksi_pasca_observasi', 'rencana_pengembangan_diri'];
                 $penilaianSorted = $penugasan->penilaian->sortBy(function($p) use ($urutanKode) {
                     $index = array_search($p->jenisInstrumen->kode ?? '', $urutanKode);
                     return $index !== false ? $index : 99;
@@ -173,7 +173,7 @@
                                 {{ $pen->jenisInstrumen->nama }}
                             </h4>
                             @if ($pen->status === 'belum')
-                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-neutral-100 text-neutral-600">Belum Dinilai</span>
+                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-neutral-100 text-neutral-600">Belum Dimulai</span>
                             @elseif ($pen->status === 'draft')
                                 <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Draft</span>
                             @elseif ($pen->status === 'direvisi')
@@ -184,13 +184,17 @@
                         </div>
 
                         <p class="text-xs text-muted mb-4">
-                            Kode: {{ strtoupper($pen->jenisInstrumen->kode) }} &bull; Versi: v{{ $pen->versiInstrumen?->nomor_versi ?? 'Aktif' }}
+                            Kode: {{ strtoupper($pen->jenisInstrumen->kode) }} &bull; Versi: v{{ $pen->versiInstrumen?->nomor_versi ?? '1' }}
                         </p>
 
                         @if ($pen->isFinal())
                             <div class="bg-emerald-50 rounded-lg p-3 border border-emerald-100 mb-4 flex items-center justify-between">
-                                <span class="text-xs font-semibold text-emerald-900">Nilai Akhir:</span>
-                                <span class="text-lg font-bold text-emerald-800">{{ number_format($pen->nilai, 2) }} (Predikat {{ $pen->predikat }})</span>
+                                <span class="text-xs font-semibold text-emerald-900">Status Capaian:</span>
+                                @if ($pen->isKuantitatif())
+                                    <span class="text-lg font-bold text-emerald-800">{{ number_format($pen->nilai, 2) }} (Predikat {{ $pen->predikat }})</span>
+                                @else
+                                    <span class="text-sm font-bold text-emerald-800">Terlaksana & Selesai</span>
+                                @endif
                             </div>
                         @endif
                     </div>

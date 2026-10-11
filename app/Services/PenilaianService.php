@@ -47,10 +47,11 @@ class PenilaianService
     }
 
     /**
-     * Simpan draf penilaian (skor butir, catatan butir, dan catatan umum).
+     * Simpan draf penilaian (skor butir, catatan butir, catatan umum, dan data kualitatif).
      *
      * @param  array<int, int|string|null>  $skorButir
      * @param  array<int, string|null>  $catatanButir
+     * @param  array<string, mixed>|null  $dataKualitatif
      */
     public function simpanDraft(
         Penilaian $penilaian,
@@ -58,7 +59,8 @@ class PenilaianService
         array $catatanButir = [],
         ?string $catatan = null,
         ?string $tindakLanjut = null,
-        ?User $user = null
+        ?User $user = null,
+        ?array $dataKualitatif = null
     ): Penilaian {
         $user = $user ?? (auth()->user() instanceof User ? auth()->user() : $penilaian->penugasan?->penilai);
 
@@ -80,7 +82,8 @@ class PenilaianService
             $catatanButir,
             $catatan,
             $tindakLanjut,
-            $user
+            $user,
+            $dataKualitatif
         ) {
             // Jika masih 'belum', inisialisasi versi aktif dan ubah ke 'draft'
             if ($penilaian->status === 'belum') {
@@ -110,8 +113,26 @@ class PenilaianService
                 }
             }
 
+            // Simpan catatan per butir jika skor tidak ada (instrumen kualitatif)
+            foreach ($catatanButir as $butirId => $teksCatatan) {
+                if (! isset($skorButir[$butirId]) || $skorButir[$butirId] === null || $skorButir[$butirId] === '') {
+                    if ($teksCatatan !== null && $teksCatatan !== '') {
+                        $penilaian->penilaianButir()->updateOrCreate(
+                            ['butir_instrumen_id' => $butirId],
+                            [
+                                'skor' => null,
+                                'catatan' => $teksCatatan,
+                            ]
+                        );
+                    }
+                }
+            }
+
             $penilaian->catatan = $catatan;
             $penilaian->tindak_lanjut = $tindakLanjut;
+            if ($dataKualitatif !== null) {
+                $penilaian->data_kualitatif = $dataKualitatif;
+            }
             $penilaian->diperbarui_oleh = $user?->id ?? $penilaian->penugasan?->penilai_id;
             $penilaian->save();
 
@@ -120,8 +141,8 @@ class PenilaianService
     }
 
     /**
-     * Finalisasi penilaian: memvalidasi semua butir terisi, menghitung total skor,
-     * skor maksimal, nilai persentase, predikat, mengisi finalized_at, dan status final.
+     * Finalisasi penilaian: memvalidasi isian, menghitung total skor jika kuantitatif,
+     * mengisi finalized_at, dan mengubah status menjadi final.
      * Dicatat ke tabel audit_log secara rinci.
      */
     public function finalisasi(Penilaian $penilaian, User $user, ?string $ip = null): Penilaian
@@ -142,7 +163,7 @@ class PenilaianService
             throw new DomainException('Penilaian hanya dapat difinalisasi saat berstatus draft atau direvisi.');
         }
 
-        $penilaian->loadMissing(['versiInstrumen.bagian.butir', 'penilaianButir']);
+        $penilaian->loadMissing(['versiInstrumen.bagian.butir', 'penilaianButir', 'jenisInstrumen']);
 
         $versi = $penilaian->versiInstrumen;
         if (! $versi) {
@@ -151,42 +172,51 @@ class PenilaianService
 
         // Ambil semua butir dari seluruh bagian versi instrumen ini
         $semuaButir = $versi->bagian->flatMap->butir;
+        $isKuantitatif = $penilaian->isKuantitatif();
         $skorMaks = (int) $semuaButir->sum('skor_maks');
 
-        if ($semuaButir->isEmpty() || $skorMaks <= 0) {
-            throw new DomainException('Instrumen belum memiliki butir penilaian yang valid.');
-        }
-
-        // Validasi: seluruh butir harus sudah diisi skor (>= 1)
         $jawabanMap = $penilaian->penilaianButir->keyBy('butir_instrumen_id');
-        $butirBelumDiisi = [];
 
-        foreach ($semuaButir as $butir) {
-            $jawaban = $jawabanMap->get($butir->id);
-            if (! $jawaban || $jawaban->skor === null || $jawaban->skor < 1) {
-                $butirBelumDiisi[] = $butir->urutan;
+        if ($isKuantitatif) {
+            if ($semuaButir->isEmpty() || $skorMaks <= 0) {
+                throw new DomainException('Instrumen kuantitatif belum memiliki butir penilaian yang valid.');
             }
-        }
 
-        if (! empty($butirBelumDiisi)) {
-            throw ValidationException::withMessages([
-                'butir' => 'Semua butir instrumen wajib diisi sebelum melakukan finalisasi. Masih ada '.count($butirBelumDiisi).' butir yang belum dinilai.',
-            ]);
+            // Validasi: seluruh butir wajib diisi skor (0 s/d 4)
+            $butirBelumDiisi = [];
+            foreach ($semuaButir as $butir) {
+                $jawaban = $jawabanMap->get($butir->id);
+                if (! $jawaban || $jawaban->skor === null) {
+                    $butirBelumDiisi[] = $butir->urutan;
+                }
+            }
+
+            if (! empty($butirBelumDiisi)) {
+                throw ValidationException::withMessages([
+                    'butir' => 'Semua butir instrumen wajib diisi sebelum melakukan finalisasi. Masih ada '.count($butirBelumDiisi).' butir yang belum diisi.',
+                ]);
+            }
         }
 
         return $penilaian->getConnection()->transaction(function () use (
             $penilaian,
+            $isKuantitatif,
             $skorMaks,
             $versi,
             $user,
             $ip
         ) {
-            $totalSkor = (int) $penilaian->penilaianButir()->sum('skor');
-            $nilai = round(($totalSkor / $skorMaks) * 100, 2);
+            $totalSkor = null;
+            $nilai = null;
+            $predikat = null;
 
-            // Tentukan predikat berdasarkan ambang_predikat pada versi_instrumen
-            $ambang = $versi->ambang_predikat ?? ['A' => 86, 'B' => 76, 'C' => 56];
-            $predikat = $this->hitungPredikat($nilai, $ambang);
+            if ($isKuantitatif && $skorMaks > 0) {
+                $totalSkor = (int) $penilaian->penilaianButir()->sum('skor');
+                $nilai = round(($totalSkor / $skorMaks) * 100, 2);
+
+                $ambang = $versi->ambang_predikat ?? ['A' => 86, 'B' => 76, 'C' => 56];
+                $predikat = $this->hitungPredikat($nilai, $ambang);
+            }
 
             // Snapshot sebelum difinalisasi
             $sebelum = $penilaian->only([
@@ -202,7 +232,7 @@ class PenilaianService
             $penilaian->update([
                 'status' => 'final',
                 'total_skor' => $totalSkor,
-                'skor_maks' => $skorMaks,
+                'skor_maks' => $isKuantitatif ? $skorMaks : null,
                 'nilai' => $nilai,
                 'predikat' => $predikat,
                 'finalized_at' => now(),

@@ -9,13 +9,14 @@ use App\Tenant\TenantContext;
 class InstrumenResolver
 {
     /**
-     * 4 Kode baku jenis instrumen sesuai docs/DESAIN.md 3.3.
+     * 5 Kode baku jenis instrumen supervisi resmi sesuai Kemendikdasmen / BBGTK Jatim.
      */
     public const KODE_STANDAR = [
-        'kbm' => 'Observasi KBM / Proses Pembelajaran',
-        'administrasi' => 'Kelengkapan Administrasi Guru',
-        'pengelolaan_kelas' => 'Pengelolaan Kelas & Lingkungan Belajar',
-        'perencanaan' => 'Perencanaan Pembelajaran / Modul Ajar',
+        'pra_observasi' => 'Lembar Catatan Percakapan Pra-Observasi',
+        'telaah_perencanaan' => 'Instrumen Telaah Perencanaan Pembelajaran',
+        'observasi_pembelajaran' => 'Instrumen Observasi Pelaksanaan Pembelajaran',
+        'refleksi_pasca_observasi' => 'Instrumen Refleksi Pasca Pembelajaran',
+        'rencana_pengembangan_diri' => 'Lembar Rencana Pengembangan Diri Guru',
     ];
 
     /**
@@ -66,7 +67,7 @@ class InstrumenResolver
     }
 
     /**
-     * Resolusi seluruh 4 instrumen standar untuk sekolah.
+     * Resolusi seluruh 5 instrumen standar untuk sekolah.
      *
      * @return array<string, ?VersiInstrumen>
      */

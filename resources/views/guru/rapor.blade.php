@@ -132,7 +132,7 @@
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     @php
-                        $urutanKunci = ['perencanaan', 'kbm', 'pengelolaan_kelas', 'administrasi'];
+                        $urutanKunci = ['pra_observasi', 'telaah_perencanaan', 'observasi_pembelajaran', 'refleksi_pasca_observasi', 'rencana_pengembangan_diri'];
                         $totalNilaiFinal = 0;
                         $jumlahFinal = 0;
                     @endphp
@@ -142,6 +142,7 @@
                             $penilaian = $penugasan->penilaian->firstWhere('jenisInstrumen.kode', $kodeJenis);
                             $namaInstrumen = $penilaian?->jenisInstrumen?->nama ?? ucfirst(str_replace('_', ' ', $kodeJenis));
                             $status = $penilaian?->status ?? 'belum';
+                            $isKuantitatif = $penilaian ? $penilaian->isKuantitatif() : in_array($kodeJenis, ['telaah_perencanaan', 'observasi_pembelajaran'], true);
 
                             if ($status === 'final' && $penilaian && $penilaian->nilai !== null) {
                                 $totalNilaiFinal += (float) $penilaian->nilai;
@@ -178,9 +179,13 @@
                             {{-- Kolom Nilai: HANYA TAMPIL JIKA STATUS FINAL --}}
                             <td class="py-3 px-3 text-center font-bold border-r border-gray-300">
                                 @if($status === 'final')
-                                    <span class="text-sm text-green-700">
-                                        {{ number_format($penilaian->nilai, 2, ',', '.') }}
-                                    </span>
+                                    @if($isKuantitatif)
+                                        <span class="text-sm text-green-700">
+                                            {{ number_format($penilaian->nilai, 2, ',', '.') }}
+                                        </span>
+                                    @else
+                                        <span class="text-xs text-green-700 font-semibold">&check; Lengkap</span>
+                                    @endif
                                 @elseif($status === 'direvisi')
                                     <span class="text-[11px] text-amber-800 italic">Sedang direvisi</span>
                                 @elseif($status === 'draft')
@@ -193,9 +198,13 @@
                             {{-- Predikat: HANYA TAMPIL JIKA STATUS FINAL --}}
                             <td class="py-3 px-3 text-center font-semibold border-r border-gray-300">
                                 @if($status === 'final')
-                                    <span class="text-xs px-2 py-0.5 rounded font-bold" style="background-color: var(--color-navy-50); color: var(--color-navy-900);">
-                                        {{ $penilaian->predikat ?? '-' }}
-                                    </span>
+                                    @if($isKuantitatif)
+                                        <span class="text-xs px-2 py-0.5 rounded font-bold" style="background-color: var(--color-navy-50); color: var(--color-navy-900);">
+                                            {{ $penilaian->predikat ?? '-' }}
+                                        </span>
+                                    @else
+                                        <span class="text-xs text-gray-600 font-medium">Terlaksana</span>
+                                    @endif
                                 @else
                                     <span class="text-gray-400">&mdash;</span>
                                 @endif

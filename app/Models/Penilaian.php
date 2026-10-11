@@ -29,6 +29,7 @@ class Penilaian extends Model
         'predikat',
         'catatan',
         'tindak_lanjut',
+        'data_kualitatif',
         'jumlah_buka_kunci',
         'finalized_at',
         'finalized_by',
@@ -41,6 +42,7 @@ class Penilaian extends Model
             'total_skor' => 'integer',
             'skor_maks' => 'integer',
             'nilai' => 'decimal:2',
+            'data_kualitatif' => 'array',
             'jumlah_buka_kunci' => 'integer',
             'finalized_at' => 'datetime',
         ];
@@ -168,14 +170,20 @@ class Penilaian extends Model
     }
 
     /**
-     * Cek apakah penilaian dapat diedit oleh supervisor (hanya saat draft atau direvisi, dan periode belum ditutup).
+     * Cek apakah instrumen merupakan instrumen kuantitatif (memiliki skor numerik).
      */
-    public function bisaDiedit(): bool
+    public function isKuantitatif(): bool
     {
-        if ($this->penugasan?->periode?->isDitutup()) {
-            return false;
-        }
+        $kode = $this->jenisInstrumen?->kode;
 
-        return in_array($this->status, ['belum', 'draft', 'direvisi'], true);
+        return in_array($kode, ['telaah_perencanaan', 'observasi_pembelajaran'], true);
+    }
+
+    /**
+     * Cek apakah instrumen merupakan instrumen kualitatif / dialogis / matriks aksi.
+     */
+    public function isKualitatif(): bool
+    {
+        return ! $this->isKuantitatif();
     }
 }

@@ -210,11 +210,11 @@
                         Alur & Tahapan Instrumen Supervisi
                     </h2>
                     <p class="text-xs text-gray-500 mt-0.5">
-                        Supervisi terdiri dari 4 tahapan penilaian standar. Nilai resmi hanya akan ditampilkan setelah status penilaian difinalisasi oleh supervisor.
+                        Supervisi terdiri dari 5 instrumen resmi supervisi (Pembelajaran Mendalam & KAA). Nilai resmi hanya akan ditampilkan setelah status penilaian difinalisasi oleh supervisor.
                     </p>
                 </div>
                 <span class="text-xs font-semibold px-3 py-1 rounded-full bg-gray-100 text-gray-700">
-                    4 Tahap Supervisi
+                    5 Tahap Supervisi Resmi
                 </span>
             </div>
 
@@ -222,10 +222,11 @@
             <div class="space-y-6">
                 @php
                     $urutanInstrumen = [
-                        'perencanaan' => ['no' => 1, 'judul' => 'Perencanaan Pembelajaran (Modul Ajar / RPP)', 'deskripsi' => 'Kelengkapan dan kesiapan administrasi perencanaan perangkat pembelajaran.'],
-                        'kbm' => ['no' => 2, 'judul' => 'Pelaksanaan Pembelajaran (KBM)', 'deskripsi' => 'Observasi langsung proses belajar mengajar tatap muka di dalam kelas.'],
-                        'pengelolaan_kelas' => ['no' => 3, 'judul' => 'Pengelolaan Lingkungan Kelas', 'deskripsi' => 'Manajemen suasana belajar, interaksi positif, dan keterlibatan aktif peserta didik.'],
-                        'administrasi' => ['no' => 4, 'judul' => 'Administrasi Guru', 'deskripsi' => 'Kelengkapan buku kerja, perangkat evaluasi, dan dokumen pendukung guru.'],
+                        'pra_observasi' => ['no' => 1, 'judul' => 'Percakapan Pra-Observasi', 'deskripsi' => 'Dialog awal menyepakati tujuan pembelajaran, fokus perilaku amatan, dan strategi pembelajaran.'],
+                        'telaah_perencanaan' => ['no' => 2, 'judul' => 'Telaah Perencanaan Pembelajaran', 'deskripsi' => 'Penelaahan keselarasan modul ajar/RPP, kerangka, langkah kegiatan, dan asesmen pembelajaran.'],
+                        'observasi_pembelajaran' => ['no' => 3, 'judul' => 'Observasi Pelaksanaan Pembelajaran', 'deskripsi' => 'Pengamatan langsung proses belajar mengajar tatap muka di dalam kelas berpusat pada murid.'],
+                        'refleksi_pasca_observasi' => ['no' => 4, 'judul' => 'Refleksi Pasca Pembelajaran', 'deskripsi' => 'Percakapan pasca-observasi, reviu amatan kelas, evaluasi tantangan, dan praktik baik.'],
+                        'rencana_pengembangan_diri' => ['no' => 5, 'judul' => 'Rencana Pengembangan Diri Guru', 'deskripsi' => 'Penyusunan rencana aksi komitmen pengembangan keprofesian berkelanjutan guru.'],
                     ];
                 @endphp
 
@@ -309,15 +310,21 @@
                             <div class="md:text-right shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-gray-100">
                                 @if($status === 'final')
                                     <div class="flex md:flex-col items-center md:items-end justify-between gap-2">
-                                        <div class="flex items-baseline gap-1.5">
-                                            <span class="text-xs font-semibold text-gray-500">Nilai:</span>
-                                            <span class="text-2xl font-bold text-green-700">
-                                                {{ number_format($penilaianItem->nilai, 2, ',', '.') }}
-                                            </span>
-                                        </div>
-                                        <div class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold" style="background-color: var(--color-navy-50); color: var(--color-navy-900);">
-                                            Predikat: {{ $penilaianItem->predikat ?? '-' }}
-                                        </div>
+                                        @if($penilaianItem->isKuantitatif())
+                                            <div class="flex items-baseline gap-1.5">
+                                                <span class="text-xs font-semibold text-gray-500">Nilai:</span>
+                                                <span class="text-2xl font-bold text-green-700">
+                                                    {{ number_format($penilaianItem->nilai, 2, ',', '.') }}
+                                                </span>
+                                            </div>
+                                            <div class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold" style="background-color: var(--color-navy-50); color: var(--color-navy-900);">
+                                                Predikat: {{ $penilaianItem->predikat ?? '-' }}
+                                            </div>
+                                        @else
+                                            <div class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800">
+                                                Terlaksana & Selesai
+                                            </div>
+                                        @endif
                                     </div>
                                     <div class="mt-2 flex items-center md:justify-end">
                                         <a href="{{ route('penilaian.cetak-pdf', ['kode' => $sekolah->kode, 'penilaian' => $penilaianItem]) }}"

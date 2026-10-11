@@ -76,15 +76,16 @@
                     </div>
                 </div>
 
-                {{-- Status 4 Instrumen Saya --}}
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+                {{-- Status 5 Instrumen Saya --}}
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4">
                     @foreach($penugasanSebagaiGuru->penilaian as $penDiri)
                         @php
                             $namaInstrumenDiri = match($penDiri->jenisInstrumen->kode ?? '') {
-                                'kbm' => 'Observasi KBM',
-                                'administrasi' => 'Administrasi',
-                                'pengelolaan_kelas' => 'Pengelolaan Kelas',
-                                'perencanaan' => 'Perencanaan',
+                                'pra_observasi' => 'Pra-Observasi',
+                                'telaah_perencanaan' => 'Telaah Perencanaan',
+                                'observasi_pembelajaran' => 'Observasi KBM',
+                                'refleksi_pasca_observasi' => 'Refleksi Pasca',
+                                'rencana_pengembangan_diri' => 'Pengembangan Diri',
                                 default => $penDiri->jenisInstrumen->nama ?? '-'
                             };
                         @endphp
@@ -147,7 +148,7 @@
                     @foreach($daftarPenugasan as $item)
                         @php
                             $selesaiCount = $item->penilaian->where('status', 'final')->count();
-                            $persenSelesai = round(($selesaiCount / 4) * 100);
+                            $persenSelesai = round(($selesaiCount / 5) * 100);
                         @endphp
                         <div class="bg-white rounded-2xl shadow-xs border border-slate-100 hover:border-slate-300 p-6 transition-all duration-150 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                             {{-- Info Guru & Progres --}}
@@ -156,8 +157,8 @@
                                     <h3 class="text-xl font-bold text-[#0d0d0d]">
                                         {{ $item->guru->nama }}
                                     </h3>
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold {{ $selesaiCount === 4 ? 'bg-emerald-100 text-emerald-800' : 'bg-navy-50 text-navy-900' }}">
-                                        Progres: {{ $selesaiCount }}/4 Instrumen
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold {{ $selesaiCount === 5 ? 'bg-emerald-100 text-emerald-800' : 'bg-navy-50 text-navy-900' }}">
+                                        Progres: {{ $selesaiCount }}/5 Instrumen
                                     </span>
                                 </div>
                                 <div class="flex flex-wrap items-center gap-y-1 gap-x-3 text-sm text-muted">
@@ -178,15 +179,16 @@
                                     <div class="bg-orange-500 h-2.5 rounded-full transition-all duration-300" style="width: {{ $persenSelesai }}%"></div>
                                 </div>
 
-                                {{-- Badge Status 4 Instrumen --}}
+                                {{-- Badge Status 5 Instrumen --}}
                                 <div class="flex flex-wrap gap-2 pt-1">
                                     @foreach($item->penilaian as $pen)
                                         @php
                                             $namaInstrumen = match($pen->jenisInstrumen->kode ?? '') {
-                                                'kbm' => 'KBM',
-                                                'administrasi' => 'Administrasi',
-                                                'pengelolaan_kelas' => 'Pengelolaan Kelas',
-                                                'perencanaan' => 'Perencanaan',
+                                                'pra_observasi' => 'Pra-Observasi',
+                                                'telaah_perencanaan' => 'Telaah Perencanaan',
+                                                'observasi_pembelajaran' => 'Observasi KBM',
+                                                'refleksi_pasca_observasi' => 'Refleksi Pasca',
+                                                'rencana_pengembangan_diri' => 'Pengembangan Diri',
                                                 default => $pen->jenisInstrumen->nama ?? '-'
                                             };
                                         @endphp

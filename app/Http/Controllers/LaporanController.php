@@ -75,16 +75,16 @@ class LaporanController extends Controller
                 ->with('penilaian')
                 ->get();
 
-            $totalSelesai = $semuaPenugasanPeriode->filter(fn ($p) => $p->penilaian->where('status', 'final')->count() === 4)->count();
+            $totalSelesai = $semuaPenugasanPeriode->filter(fn ($p) => $p->penilaian->isNotEmpty() && $p->penilaian->where('status', 'final')->count() === $p->penilaian->count())->count();
             $totalBelumSelesai = $semuaPenugasanPeriode->count() - $totalSelesai;
             $persenKetuntasan = $semuaPenugasanPeriode->count() > 0 ? round(($totalSelesai / $semuaPenugasanPeriode->count()) * 100) : 0;
 
-            // Filter status: selesai (4/4) atau belum selesai (<4)
+            // Filter status: selesai (seluruh instrumen final) atau belum selesai
             $statusFilter = $request->query('status');
             if ($statusFilter === 'selesai') {
-                $daftarPenugasan = $rawCollection->filter(fn ($p) => $p->penilaian->where('status', 'final')->count() === 4);
+                $daftarPenugasan = $rawCollection->filter(fn ($p) => $p->penilaian->isNotEmpty() && $p->penilaian->where('status', 'final')->count() === $p->penilaian->count());
             } elseif ($statusFilter === 'belum_selesai') {
-                $daftarPenugasan = $rawCollection->filter(fn ($p) => $p->penilaian->where('status', 'final')->count() < 4);
+                $daftarPenugasan = $rawCollection->filter(fn ($p) => $p->penilaian->isEmpty() || $p->penilaian->where('status', 'final')->count() < $p->penilaian->count());
             } else {
                 $daftarPenugasan = $rawCollection;
             }

@@ -196,41 +196,41 @@ class DemoSeeder extends Seeder
         );
 
         // G. Penugasan & Variasi Penilaian
-        // 1. Guru 1 (dinilai Kepsek): Selesai (4/4 Final)
+        // 1. Guru 1 (dinilai Kepsek): Selesai (5/5 Final)
         $this->buatPenugasanDenganPenilaian(
             $sekolah, $periode, $guruList[0]['user'], $kepsek, $guruList[0]['mapel'], $instrumenSekolah,
-            statusPilihan: ['kbm' => 'final', 'adm' => 'final', 'kelas' => 'final', 'rencana' => 'final']
+            statusPilihan: ['pra' => 'final', 'telaah' => 'final', 'obs' => 'final', 'refleksi' => 'final', 'rpd' => 'final']
         );
 
-        // 2. Guru 2 (dinilai Kepsek): Sedang Dinilai (1 Final, 2 Draft, 1 Belum)
+        // 2. Guru 2 (dinilai Kepsek): Sedang Berjalan (2 Final, 2 Draft, 1 Belum)
         $this->buatPenugasanDenganPenilaian(
             $sekolah, $periode, $guruList[1]['user'], $kepsek, $guruList[1]['mapel'], $instrumenSekolah,
-            statusPilihan: ['kbm' => 'final', 'adm' => 'draft', 'kelas' => 'draft', 'rencana' => 'belum']
+            statusPilihan: ['pra' => 'final', 'telaah' => 'final', 'obs' => 'draft', 'refleksi' => 'draft', 'rpd' => 'belum']
         );
 
-        // 3. Guru 3 (dinilai SpvGuru): Sedang Direvisi (1 Final, 1 Direvisi, 2 Draft)
+        // 3. Guru 3 (dinilai SpvGuru): Sedang Direvisi (2 Final, 1 Direvisi, 2 Draft)
         $this->buatPenugasanDenganPenilaian(
             $sekolah, $periode, $guruList[2]['user'], $spvGuru, $guruList[2]['mapel'], $instrumenSekolah,
-            statusPilihan: ['kbm' => 'direvisi', 'adm' => 'final', 'kelas' => 'draft', 'rencana' => 'draft'],
+            statusPilihan: ['pra' => 'final', 'telaah' => 'direvisi', 'obs' => 'final', 'refleksi' => 'draft', 'rpd' => 'draft'],
             jumlahBukaKunci: 1
         );
 
-        // 4. Guru 4 (dinilai SpvGuru): Belum Dinilai (0/4 Belum)
+        // 4. Guru 4 (dinilai SpvGuru): Belum Dinilai (0/5 Belum)
         $this->buatPenugasanDenganPenilaian(
             $sekolah, $periode, $guruList[3]['user'], $spvGuru, $guruList[3]['mapel'], $instrumenSekolah,
-            statusPilihan: ['kbm' => 'belum', 'adm' => 'belum', 'kelas' => 'belum', 'rencana' => 'belum']
+            statusPilihan: ['pra' => 'belum', 'telaah' => 'belum', 'obs' => 'belum', 'refleksi' => 'belum', 'rpd' => 'belum']
         );
 
-        // 5. Guru 5 (dinilai SpvGuru): Draft Awal (2 Draft, 2 Belum)
+        // 5. Guru 5 (dinilai SpvGuru): Tahap Awal (1 Final Pra, 1 Draft Telaah, 3 Belum)
         $this->buatPenugasanDenganPenilaian(
             $sekolah, $periode, $guruList[4]['user'], $spvGuru, $guruList[4]['mapel'], $instrumenSekolah,
-            statusPilihan: ['kbm' => 'draft', 'adm' => 'draft', 'kelas' => 'belum', 'rencana' => 'belum']
+            statusPilihan: ['pra' => 'final', 'telaah' => 'draft', 'obs' => 'belum', 'refleksi' => 'belum', 'rpd' => 'belum']
         );
 
-        // 6. Guru 6 (Supervisor 2 dinilai Kepsek): 2 Final, 1 Draft, 1 Belum
+        // 6. Guru 6 (Supervisor 2 dinilai Kepsek): 3 Final, 1 Draft, 1 Belum
         $this->buatPenugasanDenganPenilaian(
             $sekolah, $periode, $guruList[5]['user'], $kepsek, $guruList[5]['mapel'], $instrumenSekolah,
-            statusPilihan: ['kbm' => 'final', 'adm' => 'final', 'kelas' => 'draft', 'rencana' => 'belum']
+            statusPilihan: ['pra' => 'final', 'telaah' => 'final', 'obs' => 'final', 'refleksi' => 'draft', 'rpd' => 'belum']
         );
 
         // H. Surat Tugas Supervisor
@@ -270,54 +270,72 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * Buat instrumen lengkap sekolah dengan bagian dan butir.
+     * Buat atau sinkronkan instrumen lengkap sekolah dengan bagian dan butir resmi dari template global.
      */
     private function buatInstrumenSekolah(Sekolah $sekolah): array
     {
-        $definisi = [
-            'kbm' => ['nama' => 'Observasi KBM / Proses Pembelajaran', 'urutan' => 1],
-            'administrasi' => ['nama' => 'Kelengkapan Administrasi Guru', 'urutan' => 2],
-            'pengelolaan_kelas' => ['nama' => 'Pengelolaan Kelas & Budaya Belajar', 'urutan' => 3],
-            'perencanaan' => ['nama' => 'Perencanaan Pembelajaran & Modul Ajar', 'urutan' => 4],
-        ];
-
+        $kodeList = ['pra_observasi', 'telaah_perencanaan', 'observasi_pembelajaran', 'refleksi_pasca_observasi', 'rencana_pengembangan_diri'];
         $hasil = [];
 
-        foreach ($definisi as $kode => $info) {
+        foreach ($kodeList as $kode) {
+            $templateGlobal = JenisInstrumen::whereNull('sekolah_id')
+                ->where('kode', $kode)
+                ->with(['versi' => function ($q) {
+                    $q->where('status', 'terbit')->with('bagian.butirInstrumen');
+                }])
+                ->first();
+
             $jenis = JenisInstrumen::firstOrCreate(
                 ['sekolah_id' => $sekolah->id, 'kode' => $kode],
-                ['nama' => $info['nama'], 'urutan' => $info['urutan'], 'aktif' => true]
+                [
+                    'nama' => $templateGlobal?->nama ?? $kode,
+                    'urutan' => $templateGlobal?->urutan ?? 1,
+                    'aktif' => true,
+                ]
             );
 
             $versi = VersiInstrumen::firstOrCreate(
                 ['jenis_instrumen_id' => $jenis->id, 'nomor_versi' => 1],
                 [
                     'status' => 'terbit',
-                    'skor_maks_butir' => 4,
+                    'skor_maks_butir' => $templateGlobal?->versi?->first()?->skor_maks_butir ?? 0,
                     'ambang_predikat' => ['A' => 86, 'B' => 76, 'C' => 56],
                 ]
             );
 
-            // Bagian
-            $bagian = BagianInstrumen::firstOrCreate(
-                ['versi_instrumen_id' => $versi->id, 'kode' => 'BAG-1'],
-                ['judul' => 'Komponen Pokok '.$info['nama'], 'urutan' => 1]
-            );
+            // Bersihkan bagian & butir lama agar selalu sinkron dengan butir indikator resmi
+            $bagianLamaIds = BagianInstrumen::where('versi_instrumen_id', $versi->id)->pluck('id');
+            ButirInstrumen::whereIn('bagian_id', $bagianLamaIds)->delete();
+            BagianInstrumen::where('versi_instrumen_id', $versi->id)->delete();
 
-            // 2 Butir
-            $butir1 = ButirInstrumen::firstOrCreate(
-                ['bagian_id' => $bagian->id, 'urutan' => 1],
-                ['uraian' => 'Kesesuaian pelaksanaan dengan standar mutu operasional (CONTOH - GANTI).', 'skor_maks' => 4]
-            );
-            $butir2 = ButirInstrumen::firstOrCreate(
-                ['bagian_id' => $bagian->id, 'urutan' => 2],
-                ['uraian' => 'Keaktifan dan partisipasi peserta didik selama kegiatan (CONTOH - GANTI).', 'skor_maks' => 4]
-            );
+            $butirHasil = [];
+            if ($templateGlobal && $templateGlobal->versi->isNotEmpty()) {
+                $versiGlobal = $templateGlobal->versi->first();
+                foreach ($versiGlobal->bagian as $bGlobal) {
+                    $bagian = BagianInstrumen::create([
+                        'versi_instrumen_id' => $versi->id,
+                        'kode' => $bGlobal->kode,
+                        'judul' => $bGlobal->judul,
+                        'urutan' => $bGlobal->urutan,
+                        'kategori' => $bGlobal->kategori,
+                    ]);
+
+                    foreach ($bGlobal->butirInstrumen as $butirGlobal) {
+                        $bBaru = ButirInstrumen::create([
+                            'bagian_id' => $bagian->id,
+                            'urutan' => $butirGlobal->urutan,
+                            'uraian' => $butirGlobal->uraian,
+                            'skor_maks' => $butirGlobal->skor_maks,
+                        ]);
+                        $butirHasil[] = $bBaru;
+                    }
+                }
+            }
 
             $hasil[$kode] = [
                 'jenis' => $jenis,
                 'versi' => $versi,
-                'butir' => [$butir1, $butir2],
+                'butir' => $butirHasil,
             ];
         }
 
@@ -325,7 +343,7 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * Buat penugasan, info supervisi, jadwal, dan 4 penilaian dengan status bervariasi.
+     * Buat penugasan, info supervisi, jadwal, dan 5 penilaian dengan status bervariasi.
      */
     private function buatPenugasanDenganPenilaian(
         Sekolah $sekolah,
@@ -356,18 +374,28 @@ class DemoSeeder extends Seeder
             ]
         );
 
-        // Jadwal & 4 Penilaian
-        $kodeList = ['kbm', 'administrasi', 'pengelolaan_kelas', 'perencanaan'];
+        // Jadwal & 5 Penilaian
+        $kodeList = ['pra_observasi', 'telaah_perencanaan', 'observasi_pembelajaran', 'refleksi_pasca_observasi', 'rencana_pengembangan_diri'];
         $statusKeyMap = [
-            'kbm' => 'kbm',
-            'administrasi' => 'adm',
-            'pengelolaan_kelas' => 'kelas',
-            'perencanaan' => 'rencana',
+            'pra_observasi' => 'pra',
+            'telaah_perencanaan' => 'telaah',
+            'observasi_pembelajaran' => 'obs',
+            'refleksi_pasca_observasi' => 'refleksi',
+            'rencana_pengembangan_diri' => 'rpd',
         ];
 
         foreach ($kodeList as $i => $kode) {
             $dataInstrumen = $instrumenSekolah[$kode];
             $statusTarget = $statusPilihan[$statusKeyMap[$kode]] ?? 'belum';
+            $isKuantitatif = in_array($kode, ['telaah_perencanaan', 'observasi_pembelajaran'], true);
+
+            // Hitung skor maks dari butir kuantitatif
+            $skorMaksTotal = $isKuantitatif ? collect($dataInstrumen['butir'])->sum('skor_maks') : null;
+            $skorDiperoleh = ($isKuantitatif && $statusTarget !== 'belum') ? (int) round($skorMaksTotal * 0.9) : null;
+            $nilaiDiperoleh = ($isKuantitatif && $statusTarget !== 'belum' && $skorMaksTotal > 0)
+                ? round(($skorDiperoleh / $skorMaksTotal) * 100, 2)
+                : null;
+            $predikat = ($nilaiDiperoleh !== null) ? ($nilaiDiperoleh >= 86 ? 'A' : ($nilaiDiperoleh >= 76 ? 'B' : 'C')) : null;
 
             // Jadwal Supervisi
             JadwalSupervisi::firstOrCreate(
@@ -390,12 +418,12 @@ class DemoSeeder extends Seeder
                     'ulid' => (string) Str::ulid(),
                     'versi_instrumen_id' => $dataInstrumen['versi']->id,
                     'status' => $statusTarget,
-                    'total_skor' => $statusTarget === 'belum' ? 0 : 7,
-                    'skor_maks' => 8,
-                    'nilai' => $statusTarget === 'belum' ? 0 : 87.50,
-                    'predikat' => $statusTarget === 'belum' ? null : 'A',
-                    'catatan' => $statusTarget === 'final' ? 'Pembelajaran terlaksana dengan sangat baik.' : null,
-                    'tindak_lanjut' => $statusTarget === 'final' ? 'Pertahankan inovasi media pembelajaran.' : null,
+                    'total_skor' => $skorDiperoleh,
+                    'skor_maks' => $skorMaksTotal,
+                    'nilai' => $nilaiDiperoleh,
+                    'predikat' => $predikat,
+                    'catatan' => $statusTarget === 'final' ? 'Terlaksana dengan sangat baik.' : null,
+                    'tindak_lanjut' => $statusTarget === 'final' ? 'Tindak lanjuti pada siklus berikutnya.' : null,
                     'finalized_at' => $statusTarget === 'final' ? now() : null,
                     'finalized_by' => $statusTarget === 'final' ? $penilai->id : null,
                     'jumlah_buka_kunci' => $statusTarget === 'direvisi' ? $jumlahBukaKunci : 0,
@@ -407,7 +435,10 @@ class DemoSeeder extends Seeder
                 foreach ($dataInstrumen['butir'] as $butir) {
                     PenilaianButir::firstOrCreate(
                         ['penilaian_id' => $penilaian->id, 'butir_instrumen_id' => $butir->id],
-                        ['skor' => 4, 'catatan' => 'Sangat baik']
+                        [
+                            'skor' => $butir->skor_maks > 0 ? min(4, max(3, $butir->skor_maks)) : null,
+                            'catatan' => $butir->skor_maks > 0 ? 'Teramati dengan baik dan konsisten.' : 'Catatan hasil diskusi bersama.',
+                        ]
                     );
                 }
             }

@@ -69,8 +69,8 @@ class PenugasanService
             $peringatan = [];
             $penugasanDibuat = [];
 
-            // 4 kode jenis instrumen wajib supervisi sesuai DESAIN 3.3 & 3.4
-            $kodeInstrumen = ['kbm', 'administrasi', 'pengelolaan_kelas', 'perencanaan'];
+            // 5 kode jenis instrumen wajib supervisi resmi sesuai Kemendikdasmen / BBGTK Jatim
+            $kodeInstrumen = ['pra_observasi', 'telaah_perencanaan', 'observasi_pembelajaran', 'refleksi_pasca_observasi', 'rencana_pengembangan_diri'];
 
             // Siapkan pemetaan JenisInstrumen (sekolah atau global fallback)
             $mapJenis = [];
