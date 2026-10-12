@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Sekolah;
 use App\Models\User;
+use App\Support\QrCode;
 use App\Tenant\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -23,10 +25,30 @@ class SekolahAuthController extends Controller
     {
         $sekolah = Sekolah::where('kode', $kode)->firstOrFail();
 
+        if ($sekolah->status === 'aktif') {
+            Cookie::queue('supervisi_last_sekolah', $sekolah->kode, 60 * 24 * 60);
+        }
+
         TenantContext::set($sekolah->id);
 
         return view('auth.sekolah-login', [
             'sekolah' => $sekolah,
+        ]);
+    }
+
+    /**
+     * Tampilkan poster dan QR Code login sekolah untuk dicetak/dipajang.
+     */
+    public function showQrCode(string $kode): View
+    {
+        $sekolah = Sekolah::where('kode', $kode)->firstOrFail();
+        $loginUrl = $sekolah->urlLogin();
+        $qrSvg = QrCode::svg($loginUrl, 320, '#253C6D', '#FFFFFF');
+
+        return view('auth.sekolah-qr', [
+            'sekolah' => $sekolah,
+            'loginUrl' => $loginUrl,
+            'qrSvg' => $qrSvg,
         ]);
     }
 

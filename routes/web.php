@@ -10,6 +10,7 @@ use App\Http\Controllers\Auth\SekolahAuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Guru\GuruDashboardController;
 use App\Http\Controllers\LaporanController;
+use App\Http\Controllers\PortalController;
 use App\Http\Controllers\Supervisor\SupervisorDashboardController;
 use App\SuperAdmin\Controllers\InstrumenController;
 use App\SuperAdmin\Controllers\SekolahController;
@@ -24,9 +25,8 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [PortalController::class, 'index'])->name('portal.index');
+Route::post('/portal/pilih', [PortalController::class, 'pilih'])->name('portal.pilih');
 
 // Logout global
 Route::post('/logout', [SekolahAuthController::class, 'logout'])->middleware(['tenant'])->name('logout');
@@ -89,7 +89,9 @@ Route::prefix('super-admin')->name('super-admin.')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::prefix('s/{kode}')->middleware(['tenant'])->group(function () {
-    // 1. Halaman Login Sekolah (Guest)
+    // 1. Halaman Login & QR Code Sekolah (Publik / Guest)
+    Route::get('/qr-code', [SekolahAuthController::class, 'showQrCode'])->name('sekolah.qr');
+
     Route::middleware('guest')->group(function () {
         Route::get('/login', [SekolahAuthController::class, 'showLoginForm'])->name('sekolah.login');
         Route::post('/login', [SekolahAuthController::class, 'login'])->name('sekolah.login.post');
