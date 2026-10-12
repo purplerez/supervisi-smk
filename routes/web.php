@@ -179,6 +179,8 @@ Route::prefix('s/{kode}')->middleware(['tenant'])->group(function () {
             Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
             Route::get('/laporan/export/rekap', [LaporanController::class, 'exportRekap'])->name('laporan.export.rekap');
             Route::get('/laporan/export/ketuntasan', [LaporanController::class, 'exportKetuntasan'])->name('laporan.export.ketuntasan');
+            Route::get('/laporan/export/kualitatif-excel', [LaporanController::class, 'exportKualitatifAdminExcel'])->name('laporan.export.kualitatif-excel');
+            Route::get('/laporan/export/kualitatif-pdf', [LaporanController::class, 'exportKualitatifAdminPdf'])->name('laporan.export.kualitatif-pdf');
         });
 
         // Dasbor & Modul Supervisor / Penilai
@@ -188,6 +190,8 @@ Route::prefix('s/{kode}')->middleware(['tenant'])->group(function () {
             Route::get('/penilaian/{penilaian}', [SupervisorDashboardController::class, 'showPenilaian'])->name('supervisor.penilaian.show');
             Route::get('/laporan/export/rekap', [LaporanController::class, 'exportRekapSupervisor'])->name('supervisor.laporan.export.rekap');
             Route::get('/laporan/export/ketuntasan', [LaporanController::class, 'exportKetuntasanSupervisor'])->name('supervisor.laporan.export.ketuntasan');
+            Route::get('/laporan/export/kualitatif-excel', [LaporanController::class, 'exportKualitatifSupervisorExcel'])->name('supervisor.laporan.export.kualitatif-excel');
+            Route::get('/laporan/export/kualitatif-pdf', [LaporanController::class, 'exportKualitatifSupervisorPdf'])->name('supervisor.laporan.export.kualitatif-pdf');
         });
 
         // Dasbor & Modul Supervisi Guru
@@ -201,6 +205,9 @@ Route::prefix('s/{kode}')->middleware(['tenant'])->group(function () {
 
         // Cetak Lembar Penilaian Final (PDF, route key ULID: Admin, Supervisor Penilai, Guru yang Dinilai)
         Route::get('/penilaian/{penilaian}/cetak-pdf', [LaporanController::class, 'cetakPenilaianPdf'])->name('penilaian.cetak-pdf');
+
+        // Cetak Dokumen Lengkap Semua Instrumen Supervisi (PDF: Admin, Supervisor Penilai, Guru yang Dinilai)
+        Route::get('/penugasan/{penugasan}/cetak-semua-pdf', [LaporanController::class, 'cetakSemuaPenilaianPdf'])->name('penugasan.cetak-semua-pdf');
 
         // Alias untuk kompatibilitas route('dashboard.guru')
         Route::get('/guru', [GuruDashboardController::class, 'index'])->name('dashboard.guru');

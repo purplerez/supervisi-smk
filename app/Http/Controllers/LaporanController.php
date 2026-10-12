@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\LaporanKetuntasanExport;
+use App\Exports\RekapKualitatifExport;
 use App\Exports\RekapPeriodeExport;
 use App\Models\Penilaian;
 use App\Models\Penugasan;
@@ -296,6 +297,242 @@ class LaporanController extends Controller
             $penilaian->jenisInstrumen->kode ?? 'supervisi',
             $penilaian->penugasan->guru->username ?? 'guru'
         );
+
+        return $pdf->download($namaFile);
+    }
+
+    /**
+     * Cetak Lembar Hasil Penilaian Semua Instrumen ke Format PDF (A4).
+     *
+     * Aturan:
+     * - Hak akses: Admin sekolah, Supervisor penilai bersangkutan, atau Guru yang dinilai bersangkutan.
+     */
+    public function cetakSemuaPenilaianPdf(Request $request, string $kode, Penugasan $penugasan): Response
+    {
+        $sekolah = Sekolah::where('kode', $kode)->with('kepalaSekolah')->firstOrFail();
+
+        if ((int) $penugasan->sekolah_id !== (int) $sekolah->id) {
+            abort(404, 'Penugasan tidak ditemukan pada sekolah ini.');
+        }
+
+        $user = $request->user();
+
+        // Pemeriksaan Hak Akses
+        $isAdmin = $user->hasRole('admin');
+        $isPenilai = $user->hasRole('supervisor') && (int) $penugasan->penilai_id === (int) $user->id;
+        $isGuru = $user->hasRole('guru') && (int) $penugasan->guru_id === (int) $user->id;
+
+        if (! ($isAdmin || $isPenilai || $isGuru)) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengunduh berkas laporan supervisi ini.');
+        }
+
+        $penugasan->loadMissing([
+            'sekolah.kepalaSekolah',
+            'guru',
+            'penilai',
+            'periode',
+            'infoSupervisi',
+            'jadwalSupervisi.jenisInstrumen',
+            'penilaian' => function ($q) {
+                $q->with([
+                    'sekolah.kepalaSekolah',
+                    'penugasan.guru',
+                    'penugasan.penilai',
+                    'penugasan.periode',
+                    'penugasan.infoSupervisi',
+                    'penugasan.jadwalSupervisi.jenisInstrumen',
+                    'jenisInstrumen',
+                    'versiInstrumen.bagian.butir',
+                    'penilaianButir',
+                ]);
+            },
+        ]);
+
+        $pdf = Pdf::loadView('pdf.penilaian-semua', compact('penugasan'))
+            ->setPaper('a4', 'portrait');
+
+        $namaFile = sprintf(
+            'Laporan-Supervisi-Lengkap-%s.pdf',
+            $penugasan->guru->username ?? Str::slug($penugasan->guru->nama ?? 'guru')
+        );
+
+        return $pdf->download($namaFile);
+    }
+
+    /**
+     * Unduh Excel Rekap Nilai & Data Instrumen Kualitatif (Supervisor).
+     * Supervisor hanya dapat mengunduh data guru binaannya.
+     */
+    public function exportKualitatifSupervisorExcel(Request $request, string $kode): BinaryFileResponse|RedirectResponse
+    {
+        $sekolah = Sekolah::where('kode', $kode)->firstOrFail();
+        $user = $request->user();
+
+        if ($request->filled('periode_id')) {
+            $periode = Periode::find($request->query('periode_id'));
+            if (! $periode) {
+                abort(404, 'Periode supervisi tidak ditemukan pada sekolah ini.');
+            }
+        } else {
+            $periode = Periode::where('status', 'aktif')->first();
+            if (! $periode) {
+                return redirect()
+                    ->route('dashboard.supervisor', ['kode' => $kode])
+                    ->with('peringatan', 'Saat ini belum ada periode supervisi yang berstatus aktif di sekolah Anda.');
+            }
+        }
+
+        $kategori = $request->query('kategori', 'semua');
+        $safeUser = str_replace(['/', '\\', ' '], '-', $user->username ?? Str::slug($user->nama ?? 'supervisor'));
+        $safePeriode = str_replace(['/', '\\', ' '], '-', $periode->nama);
+        $namaFile = "Rekap-Kualitatif-{$kategori}-{$safeUser}-{$safePeriode}.xlsx";
+
+        return Excel::download(
+            new RekapKualitatifExport($periode, $user->id, $kategori),
+            $namaFile,
+            \Maatwebsite\Excel\Excel::XLSX,
+            [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => 'attachment; filename="'.$namaFile.'"',
+            ]
+        );
+    }
+
+    /**
+     * Unduh PDF Rekap Nilai & Data Instrumen Kualitatif (Supervisor).
+     * Supervisor hanya dapat mengunduh data guru binaannya.
+     */
+    public function exportKualitatifSupervisorPdf(Request $request, string $kode): Response|RedirectResponse
+    {
+        $sekolah = Sekolah::where('kode', $kode)->with('kepalaSekolah')->firstOrFail();
+        $user = $request->user();
+
+        if ($request->filled('periode_id')) {
+            $periode = Periode::find($request->query('periode_id'));
+            if (! $periode) {
+                abort(404, 'Periode supervisi tidak ditemukan pada sekolah ini.');
+            }
+        } else {
+            $periode = Periode::where('status', 'aktif')->first();
+            if (! $periode) {
+                return redirect()
+                    ->route('dashboard.supervisor', ['kode' => $kode])
+                    ->with('peringatan', 'Saat ini belum ada periode supervisi yang berstatus aktif di sekolah Anda.');
+            }
+        }
+
+        $kategori = $request->query('kategori', 'semua');
+
+        $query = Penugasan::where('periode_id', $periode->id)
+            ->where('penilai_id', $user->id)
+            ->with([
+                'guru',
+                'penilai',
+                'infoSupervisi',
+                'jadwalSupervisi.jenisInstrumen',
+                'penilaian' => function ($q) {
+                    $q->with(['penilaianButir', 'versiInstrumen.bagian.butir', 'jenisInstrumen']);
+                },
+            ]);
+
+        $daftarPenugasan = $query->get()->sortBy('guru.nama')->values();
+        $supervisor = $user;
+
+        $judulKategori = match ($kategori) {
+            'pra_observasi' => 'Percakapan Pra-Observasi',
+            'refleksi_pasca_observasi' => 'Refleksi Pasca-Observasi',
+            'rencana_pengembangan_diri' => 'Rencana Pengembangan Diri',
+            default => 'Semua Kategori Kualitatif',
+        };
+
+        $pdf = Pdf::loadView('pdf.rekap-kualitatif', compact('sekolah', 'periode', 'daftarPenugasan', 'supervisor', 'kategori', 'judulKategori'))
+            ->setPaper('a4', 'landscape');
+
+        $safeUser = str_replace(['/', '\\', ' '], '-', $user->username ?? Str::slug($user->nama ?? 'supervisor'));
+        $safePeriode = str_replace(['/', '\\', ' '], '-', $periode->nama);
+        $namaFile = "Rekap-Kualitatif-{$kategori}-{$safeUser}-{$safePeriode}.pdf";
+
+        return $pdf->download($namaFile);
+    }
+
+    /**
+     * Unduh Excel Rekap Nilai & Data Instrumen Kualitatif (Admin).
+     */
+    public function exportKualitatifAdminExcel(Request $request, string $kode): BinaryFileResponse
+    {
+        $sekolah = Sekolah::where('kode', $kode)->firstOrFail();
+
+        $periodeId = $request->query('periode_id');
+        $periode = $periodeId ? Periode::find($periodeId) : Periode::where('status', 'aktif')->first();
+
+        if (! $periode) {
+            abort(404, 'Periode supervisi tidak ditemukan.');
+        }
+
+        $penilaiId = $request->filled('penilai_id') ? (int) $request->query('penilai_id') : null;
+        $kategori = $request->query('kategori', 'semua');
+
+        $safePeriode = str_replace(['/', '\\', ' '], '-', $periode->nama);
+        $namaFile = "Rekap-Kualitatif-{$kategori}-{$safePeriode}.xlsx";
+
+        return Excel::download(
+            new RekapKualitatifExport($periode, $penilaiId, $kategori),
+            $namaFile,
+            \Maatwebsite\Excel\Excel::XLSX,
+            [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => 'attachment; filename="'.$namaFile.'"',
+            ]
+        );
+    }
+
+    /**
+     * Unduh PDF Rekap Nilai & Data Instrumen Kualitatif (Admin).
+     */
+    public function exportKualitatifAdminPdf(Request $request, string $kode): Response
+    {
+        $sekolah = Sekolah::where('kode', $kode)->with('kepalaSekolah')->firstOrFail();
+
+        $periodeId = $request->query('periode_id');
+        $periode = $periodeId ? Periode::find($periodeId) : Periode::where('status', 'aktif')->first();
+
+        if (! $periode) {
+            abort(404, 'Periode supervisi tidak ditemukan.');
+        }
+
+        $penilaiId = $request->filled('penilai_id') ? (int) $request->query('penilai_id') : null;
+        $kategori = $request->query('kategori', 'semua');
+
+        $query = Penugasan::where('periode_id', $periode->id)
+            ->with([
+                'guru',
+                'penilai',
+                'infoSupervisi',
+                'jadwalSupervisi.jenisInstrumen',
+                'penilaian' => function ($q) {
+                    $q->with(['penilaianButir', 'versiInstrumen.bagian.butir', 'jenisInstrumen']);
+                },
+            ]);
+
+        if ($penilaiId) {
+            $query->where('penilai_id', $penilaiId);
+        }
+
+        $daftarPenugasan = $query->get()->sortBy('guru.nama')->values();
+        $supervisor = $penilaiId ? User::find($penilaiId) : null;
+
+        $judulKategori = match ($kategori) {
+            'pra_observasi' => 'Percakapan Pra-Observasi',
+            'refleksi_pasca_observasi' => 'Refleksi Pasca-Observasi',
+            'rencana_pengembangan_diri' => 'Rencana Pengembangan Diri',
+            default => 'Semua Kategori Kualitatif',
+        };
+
+        $pdf = Pdf::loadView('pdf.rekap-kualitatif', compact('sekolah', 'periode', 'daftarPenugasan', 'supervisor', 'kategori', 'judulKategori'))
+            ->setPaper('a4', 'landscape');
+
+        $safePeriode = str_replace(['/', '\\', ' '], '-', $periode->nama);
+        $namaFile = "Rekap-Kualitatif-{$kategori}-{$safePeriode}.pdf";
 
         return $pdf->download($namaFile);
     }

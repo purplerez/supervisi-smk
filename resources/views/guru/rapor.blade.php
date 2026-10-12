@@ -5,7 +5,15 @@
         subtitle="Rincian hasil penilaian supervisi akademik resmi pada periode {{ $periode->nama }}."
     >
         <x-slot:actions>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('penugasan.cetak-semua-pdf', ['kode' => $sekolah->kode, 'penugasan' => $penugasan->id]) }}"
+                   target="_blank"
+                   class="px-4 py-2.5 rounded-xl font-bold text-white bg-navy-900 hover:bg-navy-800 transition min-h-[44px] flex items-center gap-2 shadow-sm text-sm">
+                    <svg class="w-4 h-4 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    <span>Cetak Rapor Lengkap (PDF)</span>
+                </a>
                 <x-button variant="sekunder" href="{{ route('guru.dashboard', ['kode' => $sekolah->kode]) }}">
                     &larr; Dasbor Utama
                 </x-button>
@@ -127,7 +135,8 @@
                         <th class="py-2.5 px-3 w-20 text-center border-r border-gray-300">Nilai</th>
                         <th class="py-2.5 px-3 w-20 text-center border-r border-gray-300">Predikat</th>
                         <th class="py-2.5 px-3 border-r border-gray-300">Catatan Supervisor</th>
-                        <th class="py-2.5 px-3">Rekomendasi Tindak Lanjut</th>
+                        <th class="py-2.5 px-3 border-r border-gray-300">Rekomendasi Tindak Lanjut</th>
+                        <th class="py-2.5 px-3 w-24 text-center">Cetak PDF</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
@@ -220,11 +229,28 @@
                             </td>
 
                             {{-- Tindak Lanjut --}}
-                            <td class="py-3 px-3 text-gray-700">
+                            <td class="py-3 px-3 text-gray-700 border-r border-gray-300">
                                 @if($status === 'final')
                                     {{ $penilaian->tindak_lanjut ?: '-' }}
                                 @else
                                     <span class="text-gray-400 italic">Tersedia setelah final</span>
+                                @endif
+                            </td>
+
+                            {{-- Aksi Unduh PDF --}}
+                            <td class="py-3 px-3 text-center">
+                                @if($status === 'final' && $penilaian)
+                                    <a href="{{ route('penilaian.cetak-pdf', ['kode' => $sekolah->kode, 'penilaian' => $penilaian]) }}"
+                                       target="_blank"
+                                       class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-navy-50 text-navy-900 hover:bg-navy-100 border border-navy-200 transition"
+                                       title="Unduh PDF Instrumen Ini">
+                                        <svg class="w-3.5 h-3.5 text-navy-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                        </svg>
+                                        <span>PDF</span>
+                                    </a>
+                                @else
+                                    <span class="text-gray-400 italic">&mdash;</span>
                                 @endif
                             </td>
                         </tr>
@@ -253,7 +279,7 @@
                                     {{ $predikatAkhir }}
                                 </span>
                             </td>
-                            <td colspan="2" class="py-3 px-3 text-xs font-medium text-gray-600">
+                            <td colspan="3" class="py-3 px-3 text-xs font-medium text-gray-600">
                                 Rapor supervisi lengkap (4/4 tuntas).
                             </td>
                         </tr>

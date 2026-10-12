@@ -11,7 +11,18 @@
     <x-page-header
         title="Supervisi: {{ $penugasan->guru->nama }}"
         subtitle="Periode {{ $penugasan->periode->nama }} ({{ $penugasan->periode->tahun_ajaran }})"
-    />
+    >
+        <x-slot:actions>
+            <a href="{{ route('penugasan.cetak-semua-pdf', ['kode' => $sekolah->kode, 'penugasan' => $penugasan->id]) }}"
+               target="_blank"
+               class="px-4 py-2.5 rounded-xl font-bold text-white bg-navy-900 hover:bg-navy-800 transition min-h-[44px] flex items-center gap-2 shadow-sm text-sm">
+                <svg class="w-4 h-4 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                <span>Cetak Semua Lembar Supervisi (PDF)</span>
+            </a>
+        </x-slot:actions>
+    </x-page-header>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {{-- Kartu Info Guru & Supervisi (Read-Only) --}}

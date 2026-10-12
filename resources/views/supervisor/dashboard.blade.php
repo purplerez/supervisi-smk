@@ -5,13 +5,87 @@
     >
         @if($periode && $daftarPenugasan->isNotEmpty())
             <x-slot:actions>
-                <a href="{{ route('supervisor.laporan.export.rekap', ['kode' => $sekolah->kode, 'periode_id' => $periode->id]) }}"
-                   class="px-4 py-2.5 rounded-xl font-bold text-white bg-emerald-700 hover:bg-emerald-800 transition min-h-[44px] flex items-center gap-2 shadow-sm text-sm">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <span>Unduh Rekap Bimbingan (.xlsx)</span>
-                </a>
+                <div class="flex flex-wrap items-center gap-2" x-data="{ modalKualitatif: false }">
+                    {{-- Unduh Rekap Bimbingan Umum --}}
+                    <a href="{{ route('supervisor.laporan.export.rekap', ['kode' => $sekolah->kode, 'periode_id' => $periode->id]) }}"
+                       class="px-4 py-2.5 rounded-xl font-bold text-white bg-emerald-700 hover:bg-emerald-800 transition min-h-[44px] flex items-center gap-2 shadow-sm text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span>Unduh Rekap Nilai (.xlsx)</span>
+                    </a>
+
+                    {{-- Tombol Buka Modal Rekap Kualitatif --}}
+                    <button type="button"
+                            @click="modalKualitatif = true"
+                            class="px-4 py-2.5 rounded-xl font-bold text-navy-900 bg-white border border-navy-300 hover:bg-navy-50 transition min-h-[44px] flex items-center gap-2 shadow-sm text-sm">
+                        <svg class="w-4 h-4 text-navy-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span>Rekap Kualitatif (Excel & PDF)</span>
+                    </button>
+
+                    {{-- MODAL PILIHAN KATEGORI DAN FORMAT REKAP KUALITATIF --}}
+                    <div x-show="modalKualitatif"
+                         x-cloak
+                         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-900/60 backdrop-blur-sm"
+                         @keydown.escape.window="modalKualitatif = false">
+                        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-neutral-200 space-y-5 text-left"
+                             @click.away="modalKualitatif = false"
+                             x-data="{ kategoriPilihan: 'semua' }">
+                            <div class="flex items-center justify-between border-b border-neutral-100 pb-3">
+                                <h3 class="text-lg font-bold text-navy-900 flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    Rekap Instrumen Kualitatif
+                                </h3>
+                                <button type="button" @click="modalKualitatif = false" class="text-muted hover:text-navy-900">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <p class="text-sm text-muted">
+                                Pilih jenis/kategori instrumen kualitatif yang ingin direkapitulasi untuk seluruh guru binaan Anda pada periode aktif ini:
+                            </p>
+
+                            <div class="space-y-2">
+                                <label class="block text-xs font-bold uppercase text-navy-900">Kategori / Jenis Instrumen:</label>
+                                <select x-model="kategoriPilihan" class="form-input text-sm w-full rounded-xl border-neutral-300">
+                                    <option value="semua">Semua Kategori Kualitatif (Rangkuman Lengkap)</option>
+                                    <option value="pra_observasi">1. Lembar Percakapan Pra-Observasi</option>
+                                    <option value="refleksi_pasca_observasi">4. Refleksi Pasca Pembelajaran</option>
+                                    <option value="rencana_pengembangan_diri">5. Lembar Rencana Pengembangan Diri Guru</option>
+                                </select>
+                            </div>
+
+                            <div class="pt-4 border-t border-neutral-100 flex flex-col sm:flex-row items-center justify-end gap-3">
+                                {{-- Unduh Excel --}}
+                                <a :href="'{{ route('supervisor.laporan.export.kualitatif-excel', ['kode' => $sekolah->kode, 'periode_id' => $periode->id]) }}' + '&kategori=' + kategoriPilihan"
+                                   @click="modalKualitatif = false"
+                                   class="w-full sm:w-auto px-4 py-2.5 rounded-xl font-bold text-white bg-emerald-700 hover:bg-emerald-800 transition shadow-sm min-h-[44px] flex items-center justify-center gap-2 text-sm">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <span>Unduh Excel (.xlsx)</span>
+                                </a>
+
+                                {{-- Unduh PDF --}}
+                                <a :href="'{{ route('supervisor.laporan.export.kualitatif-pdf', ['kode' => $sekolah->kode, 'periode_id' => $periode->id]) }}' + '&kategori=' + kategoriPilihan"
+                                   target="_blank"
+                                   @click="modalKualitatif = false"
+                                   class="w-full sm:w-auto px-4 py-2.5 rounded-xl font-bold text-white bg-navy-900 hover:bg-navy-800 transition shadow-sm min-h-[44px] flex items-center justify-center gap-2 text-sm">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                    </svg>
+                                    <span>Unduh PDF (.pdf)</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </x-slot:actions>
         @endif
     </x-page-header>
@@ -211,9 +285,19 @@
                             </div>
 
                             {{-- Tombol Aksi Detail --}}
-                            <div class="flex items-center justify-end">
+                            <div class="flex items-center gap-2.5 justify-end">
+                                <a href="{{ route('penugasan.cetak-semua-pdf', ['kode' => $sekolah->kode, 'penugasan' => $item->id]) }}" 
+                                   target="_blank"
+                                   class="px-4 py-2.5 rounded-2xl font-bold text-navy-900 bg-white border border-neutral-300 hover:bg-neutral-50 transition shadow-2xs min-h-[44px] flex items-center gap-2 text-sm"
+                                   title="Cetak Berkas Lengkap Semua Lembar Penilaian Guru Ini (PDF)">
+                                    <svg class="w-4 h-4 text-navy-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                    </svg>
+                                    <span>Cetak Semua (PDF)</span>
+                                </a>
+
                                 <a href="{{ route('supervisor.penugasan.show', ['kode' => $sekolah->kode, 'penugasan' => $item->id]) }}" 
-                                   class="px-5 py-2.5 rounded-2xl font-bold text-white bg-navy-900 hover:bg-navy-800 active:scale-[0.98] transition shadow-xs min-h-[44px] flex items-center gap-2">
+                                   class="px-5 py-2.5 rounded-2xl font-bold text-white bg-navy-900 hover:bg-navy-800 active:scale-[0.98] transition shadow-xs min-h-[44px] flex items-center gap-2 text-sm">
                                     <span>Buka Lembar Penilaian</span>
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
