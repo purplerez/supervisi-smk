@@ -38,6 +38,12 @@
     --color-action-yellow-hover:#E5A71A;
     --color-action-red:         #C62828;
     --color-action-red-hover:   #A91F1F;
+    --color-action-edit:        #F5B82E;
+    --color-action-edit-hover:  #E5A71A;
+    --color-action-delete:      #C62828;
+    --color-action-delete-hover:#A91F1F;
+    --color-action-add:         #2E7D32;
+    --color-action-add-hover:   #256628;
 
     /* Badge status */
     --color-badge-belum-bg:    #EEF0F4;

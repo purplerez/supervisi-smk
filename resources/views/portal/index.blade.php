@@ -32,6 +32,7 @@
         </div>
 
         <div>
+            {{-- 
             <a href="{{ route('super-admin.login') }}"
                class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-white/90 hover:text-white rounded-lg border border-white/20 hover:border-white/40 transition-colors"
                style="min-height: 44px;">
@@ -40,6 +41,7 @@
                 </svg>
                 <span>Login Super Admin</span>
             </a>
+            --}}
         </div>
     </header>
 
@@ -160,8 +162,8 @@
                         id="search-input"
                         x-model="search"
                         placeholder="Ketik nama sekolah atau nomor NPSN di sini..."
-                        class="w-full pl-12 pr-12 py-3.5 text-base sm:text-lg rounded-xl border border-gray-300 focus:outline-none focus:ring-3 focus:ring-[#F2842F] focus:border-transparent transition-all"
-                        style="min-height: 52px; background-color: #FFFFFF;"
+                        class="w-full text-base sm:text-lg rounded-xl border border-gray-300 focus:outline-none focus:ring-3 focus:ring-[#F2842F] focus:border-transparent transition-all"
+                        style="min-height: 52px; background-color: #FFFFFF; padding-left: 3.25rem !important; padding-right: 3rem !important; padding-top: 0.875rem; padding-bottom: 0.875rem;"
                         autofocus
                     >
                     <button
@@ -293,7 +295,7 @@
     <footer class="w-full py-6 text-center text-xs text-[#5B6475] border-t"
             style="border-color: var(--color-border, #E8E0D2); background-color: #FFFFFF;">
         <div class="max-w-4xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <span>&copy; {{ date('Y') }} {{ config('app.name', 'Supervisi Guru') }}. Seluruh hak cipta dilindungi.</span>
+            <span>&copy; {{ date('Y') }} Kebun Kode . PPLG SMKN 1 Banyuwangi</span>
             <div class="flex items-center gap-4">
                 <a href="{{ route('super-admin.login') }}" class="text-[#5B6475] hover:text-[#253C6D] underline">
                     Login Administrator Sistem

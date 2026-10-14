@@ -138,18 +138,18 @@
             @endif
         </x-card>
 
-        {{-- Statistik Selesai (4/4) --}}
+        {{-- Statistik Selesai (5/5) --}}
         <x-card class="p-4 text-center">
-            <span class="block text-xs font-semibold uppercase tracking-wider" style="color: var(--color-muted);">Selesai (4/4 Instrumen)</span>
+            <span class="block text-xs font-semibold uppercase tracking-wider" style="color: var(--color-muted);">Selesai (5/5 Instrumen)</span>
             <span class="block text-2xl font-bold mt-1 text-emerald-700">
                 {{ $totalSelesai }} Guru
             </span>
             <span class="block text-xs mt-1 text-muted">Ketuntasan: {{ $persenKetuntasan }}%</span>
         </x-card>
 
-        {{-- Statistik Belum Selesai (<4) --}}
+        {{-- Statistik Belum Selesai (<5) --}}
         <x-card class="p-4 text-center">
-            <span class="block text-xs font-semibold uppercase tracking-wider" style="color: var(--color-muted);">Belum Selesai (&lt;4)</span>
+            <span class="block text-xs font-semibold uppercase tracking-wider" style="color: var(--color-muted);">Belum Selesai (&lt;5)</span>
             <span class="block text-2xl font-bold mt-1 text-amber-700">
                 {{ $totalBelumSelesai }} Guru
             </span>

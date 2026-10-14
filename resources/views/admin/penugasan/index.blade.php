@@ -174,7 +174,7 @@
                                     <tr>
                                         <th class="py-3.5 px-4 font-bold">Guru yang Disupervisi</th>
                                         <th class="py-3.5 px-4 font-bold">Supervisor Penilai</th>
-                                        <th class="py-3.5 px-4 font-bold text-center">Status 4 Penilaian</th>
+                                        <th class="py-3.5 px-4 font-bold text-center">Status 5 Instrumen</th>
                                         <th class="py-3.5 px-4 font-bold text-right">Aksi</th>
                                     </tr>
                                 </thead>
@@ -204,10 +204,10 @@
                                                 </p>
                                             </td>
 
-                                            {{-- Status 4 Penilaian --}}
+                                            {{-- Status 5 Instrumen --}}
                                             <td class="py-3.5 px-4 text-center">
-                                                <div class="inline-flex flex-wrap gap-1 justify-center max-w-xs">
-                                                    @foreach($item->penilaian as $pen)
+                                                <div class="inline-flex flex-wrap gap-1.5 justify-center max-w-xs">
+                                                    @foreach($item->penilaian->sortBy(fn($p) => $p->jenisInstrumen?->urutan ?? 99) as $pen)
                                                         @php
                                                             $singkatan = match($pen->jenisInstrumen->kode ?? '') {
                                                                 'pra_observasi' => 'PRA',
@@ -221,17 +221,17 @@
                                                         @if($pen->isFinal() && !$periode->isDitutup())
                                                             <button type="button"
                                                                     @click="bukaModalBukaKunci({{ $pen->id }}, '{{ addslashes($item->guru->nama) }}', '{{ addslashes($pen->jenisInstrumen->nama ?? '') }}')"
-                                                                    class="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300 inline-flex items-center gap-1 cursor-pointer transition"
+                                                                    class="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300 inline-flex items-center gap-1 cursor-pointer transition shadow-xs"
                                                                     title="Klik untuk Buka Kunci {{ $pen->jenisInstrumen->nama }}">
                                                                 <span>{{ $singkatan }}: Final</span>
                                                                 <svg class="w-3 h-3 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
                                                             </button>
                                                         @else
-                                                            <span class="px-2 py-0.5 rounded text-xs font-semibold
-                                                                {{ $pen->isFinal() ? 'bg-emerald-100 text-emerald-800' : '' }}
-                                                                {{ $pen->isDraft() ? 'bg-amber-100 text-amber-800' : '' }}
-                                                                {{ $pen->isDirevisi() ? 'bg-orange-100 text-orange-800' : '' }}
-                                                                {{ $pen->isBelum() ? 'bg-neutral-100 text-neutral-600' : '' }}"
+                                                            <span class="px-2 py-0.5 rounded text-xs font-semibold border
+                                                                {{ $pen->isFinal() ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : '' }}
+                                                                {{ $pen->isDraft() ? 'bg-amber-100 text-amber-800 border-amber-200' : '' }}
+                                                                {{ $pen->isDirevisi() ? 'bg-orange-100 text-orange-800 border-orange-200' : '' }}
+                                                                {{ $pen->isBelum() ? 'bg-neutral-100 text-neutral-600 border-neutral-200' : '' }}"
                                                                   title="{{ $pen->jenisInstrumen->nama ?? '' }}: {{ ucfirst($pen->status) }}">
                                                                 {{ $singkatan }}: {{ ucfirst($pen->status) }}
                                                             </span>
@@ -242,35 +242,50 @@
 
                                             {{-- Aksi --}}
                                             <td class="py-3.5 px-4 text-right">
-                                                <div class="flex items-center justify-end gap-1.5">
+                                                <div class="flex items-center justify-end gap-2">
                                                     @if($bisaUbah)
-                                                        <button type="button"
-                                                                @click="bukaGantiPenilai({{ $item->id }}, '{{ addslashes($item->guru->nama) }}', {{ $item->penilai_id }})"
-                                                                class="px-2.5 py-1 text-xs font-semibold rounded transition-colors"
-                                                                style="background-color: var(--color-action-edit); color: var(--color-ink);"
-                                                                title="Ganti Penilai">
-                                                            Ganti Penilai
-                                                        </button>
+                                                        <x-button type="button"
+                                                                  variant="edit"
+                                                                  size="sm"
+                                                                  @click="bukaGantiPenilai({{ $item->id }}, '{{ addslashes($item->guru->nama) }}', {{ $item->penilai_id }})"
+                                                                  title="Ganti Supervisor Penilai"
+                                                                  class="shadow-xs">
+                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                                            </svg>
+                                                            <span>Ganti Penilai</span>
+                                                        </x-button>
 
-                                                        <form method="POST" action="{{ route('admin.penugasan.destroy', ['kode' => $sekolah->kode, 'penugasan' => $item]) }}"
-                                                              onsubmit="return confirm('Hapus penugasan untuk {{ addslashes($item->guru->nama) }}? Empat baris penilaian supervisi yang belum dinilai juga akan dihapus.');">
+                                                        <form method="POST"
+                                                              action="{{ route('admin.penugasan.destroy', ['kode' => $sekolah->kode, 'penugasan' => $item]) }}"
+                                                              onsubmit="return confirm('Hapus penugasan untuk {{ addslashes($item->guru->nama) }}? Kelima baris penilaian supervisi yang belum dinilai juga akan dihapus.');"
+                                                              class="inline-block">
                                                             @csrf
                                                             @method('DELETE')
-                                                            <button type="submit" class="px-2.5 py-1 text-xs font-semibold rounded text-white transition-colors"
-                                                                    style="background-color: var(--color-action-delete);"
-                                                                    title="Hapus Penugasan">
-                                                                Hapus
-                                                            </button>
+                                                            <x-button type="submit"
+                                                                      variant="hapus"
+                                                                      size="sm"
+                                                                      title="Hapus Penugasan"
+                                                                      class="shadow-xs">
+                                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                                </svg>
+                                                                <span>Hapus</span>
+                                                            </x-button>
                                                         </form>
                                                     @else
                                                         @php
                                                             $penilaianFinalList = $item->penilaian->filter(fn($p) => $p->isFinal());
                                                         @endphp
                                                         @if($penilaianFinalList->isNotEmpty() && !$periode->isDitutup())
-                                                            <span class="text-xs text-muted">Buka kunci via badge final</span>
+                                                            <span class="inline-flex items-center gap-1 text-xs text-muted font-medium bg-gray-100 px-2 py-1 rounded border border-gray-200">
+                                                                <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                                                                <span>Buka kunci via badge final</span>
+                                                            </span>
                                                         @else
-                                                            <span class="text-xs text-gray-400 italic" title="Penugasan tidak dapat diubah karena penilaian sudah dimulai atau periode telah ditutup">
-                                                                Terkunci
+                                                            <span class="inline-flex items-center gap-1 text-xs text-gray-400 italic bg-gray-50 px-2 py-1 rounded border border-gray-200" title="Penugasan tidak dapat diubah karena penilaian sudah dimulai atau periode telah ditutup">
+                                                                <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                                                                <span>Terkunci</span>
                                                             </span>
                                                         @endif
                                                     @endif
@@ -339,7 +354,7 @@
                 <div @click.outside="modalGantiPenilai = false" class="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border" style="border-color: var(--color-border);">
                     <h3 class="text-lg font-bold mb-3" style="color: var(--color-navy-900);">Ganti Supervisor Penilai</h3>
                     <p class="text-xs text-gray-600 mb-4">
-                        Pilih supervisor pengganti untuk guru <strong x-text="penugasanAktif.namaGuru"></strong>. Penggantian hanya diizinkan bila keempat penilaian supervisi masih berstatus "Belum".
+                        Pilih supervisor pengganti untuk guru <strong x-text="penugasanAktif.namaGuru"></strong>. Penggantian hanya diizinkan bila kelima penilaian supervisi masih berstatus "Belum".
                     </p>
 
                     <form :action="'{{ url('/s/' . $sekolah->kode . '/admin/penugasan') }}/' + penugasanAktif.id + '/penilai'" method="POST">

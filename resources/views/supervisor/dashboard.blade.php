@@ -120,7 +120,8 @@
         @if(isset($penugasanSebagaiGuru) && $penugasanSebagaiGuru)
             @php
                 $selesaiDiri = $penugasanSebagaiGuru->penilaian->where('status', 'final')->count();
-                $persenDiri = round(($selesaiDiri / 4) * 100);
+                $totalInstrumenDiri = $penugasanSebagaiGuru->penilaian->count() ?: 5;
+                $persenDiri = round(($selesaiDiri / $totalInstrumenDiri) * 100);
             @endphp
             <div class="mb-6 bg-white rounded-2xl shadow-sm border-2 border-navy-100 p-6 relative overflow-hidden">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-neutral-100 pb-4">
@@ -138,8 +139,8 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold {{ $selesaiDiri === 4 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' }}">
-                            Progres Penilaian: {{ $selesaiDiri }}/4 Instrumen
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold {{ $selesaiDiri === $totalInstrumenDiri ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' }}">
+                            Progres Penilaian: {{ $selesaiDiri }}/{{ $totalInstrumenDiri }} Instrumen
                         </span>
                         <a href="{{ route('guru.rapor', ['kode' => $sekolah->kode]) }}" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-navy-900 hover:bg-navy-800 transition shadow-sm flex items-center gap-1.5 min-h-[38px]">
                             <span>Buka Rapor Saya</span>
