@@ -116,94 +116,100 @@
             </div>
         </div>
 
-        {{-- Kartu Rekaman Supervisi Diri Sendiri (Sebagai Guru yang Disupervisi) --}}
-        @if(isset($penugasanSebagaiGuru) && $penugasanSebagaiGuru)
-            @php
-                $selesaiDiri = $penugasanSebagaiGuru->penilaian->where('status', 'final')->count();
-                $totalInstrumenDiri = $penugasanSebagaiGuru->penilaian->count() ?: 5;
-                $persenDiri = round(($selesaiDiri / $totalInstrumenDiri) * 100);
-            @endphp
-            <div class="mb-6 bg-white rounded-2xl shadow-sm border-2 border-navy-100 p-6 relative overflow-hidden">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-neutral-100 pb-4">
-                    <div>
-                        <div class="flex items-center gap-2.5">
-                            <span class="w-8 h-8 rounded-lg bg-orange-500 text-white flex items-center justify-center font-bold text-sm">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                </svg>
-                            </span>
-                            <div>
-                                <h3 class="text-lg font-bold text-navy-900">Rekaman Supervisi Anda (Sebagai Guru)</h3>
-                                <p class="text-xs text-muted">Penilai / Supervisor Anda: <strong class="text-navy-900">{{ $penugasanSebagaiGuru->penilai?->nama ?? 'Belum ditentukan' }}</strong></p>
+        {{--
+            Kartu Rekaman Supervisi Diri Sendiri (Sebagai Guru yang Disupervisi)
+            Dinonaktifkan / disembunyikan (hide) dari tampilan agar tidak membebani view dari supervisor.
+            Kode tetap dipertahankan (jangan dihilangkan).
+        --}}
+        <div style="display: none;" class="hidden" aria-hidden="true">
+            @if(isset($penugasanSebagaiGuru) && $penugasanSebagaiGuru)
+                @php
+                    $selesaiDiri = $penugasanSebagaiGuru->penilaian->where('status', 'final')->count();
+                    $totalInstrumenDiri = $penugasanSebagaiGuru->penilaian->count() ?: 5;
+                    $persenDiri = round(($selesaiDiri / $totalInstrumenDiri) * 100);
+                @endphp
+                <div class="mb-6 bg-white rounded-2xl shadow-sm border-2 border-navy-100 p-6 relative overflow-hidden">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-neutral-100 pb-4">
+                        <div>
+                            <div class="flex items-center gap-2.5">
+                                <span class="w-8 h-8 rounded-lg bg-orange-500 text-white flex items-center justify-center font-bold text-sm">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                </span>
+                                <div>
+                                    <h3 class="text-lg font-bold text-navy-900">Rekaman Supervisi Anda (Sebagai Guru)</h3>
+                                    <p class="text-xs text-muted">Penilai / Supervisor Anda: <strong class="text-navy-900">{{ $penugasanSebagaiGuru->penilai?->nama ?? 'Belum ditentukan' }}</strong></p>
+                                </div>
                             </div>
                         </div>
+                        <div class="flex items-center gap-3">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold {{ $selesaiDiri === $totalInstrumenDiri ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' }}">
+                                Progres Penilaian: {{ $selesaiDiri }}/{{ $totalInstrumenDiri }} Instrumen
+                            </span>
+                            <a href="{{ route('guru.rapor', ['kode' => $sekolah->kode]) }}" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-navy-900 hover:bg-navy-800 transition shadow-sm flex items-center gap-1.5 min-h-[38px]">
+                                <span>Buka Rapor Saya</span>
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </a>
+                        </div>
                     </div>
+
+                    {{-- Status 5 Instrumen Saya --}}
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4">
+                        @foreach($penugasanSebagaiGuru->penilaian as $penDiri)
+                            @php
+                                $namaInstrumenDiri = match($penDiri->jenisInstrumen->kode ?? '') {
+                                    'pra_observasi' => 'Pra-Observasi',
+                                    'telaah_perencanaan' => 'Telaah Perencanaan',
+                                    'observasi_pembelajaran' => 'Observasi KBM',
+                                    'refleksi_pasca_observasi' => 'Refleksi Pasca',
+                                    'rencana_pengembangan_diri' => 'Pengembangan Diri',
+                                    default => $penDiri->jenisInstrumen->nama ?? '-'
+                                };
+                            @endphp
+                            <div class="p-3 rounded-xl border {{ $penDiri->isFinal() ? 'bg-emerald-50/60 border-emerald-200' : ($penDiri->isDraft() ? 'bg-amber-50/60 border-amber-200' : 'bg-neutral-50 border-neutral-200') }}">
+                                <p class="text-xs font-semibold text-navy-900 truncate">{{ $namaInstrumenDiri }}</p>
+                                <p class="text-xs mt-1">
+                                    @if($penDiri->isFinal())
+                                        <span class="font-bold text-emerald-700">{{ number_format($penDiri->nilai, 2) }}</span> <span class="text-[11px] text-emerald-600 font-medium">({{ $penDiri->predikat }})</span>
+                                    @elseif($penDiri->isDraft())
+                                        <span class="text-amber-700 font-medium">Sedang dinilai</span>
+                                    @elseif($penDiri->isDirevisi())
+                                        <span class="text-orange-700 font-medium">Sedang direvisi</span>
+                                    @else
+                                        <span class="text-neutral-500">Belum dinilai</span>
+                                    @endif
+                                </p>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @elseif(auth()->user()?->hasRole('guru'))
+                <div class="mb-6 bg-navy-50/70 border border-navy-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div class="flex items-center gap-3">
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold {{ $selesaiDiri === $totalInstrumenDiri ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' }}">
-                            Progres Penilaian: {{ $selesaiDiri }}/{{ $totalInstrumenDiri }} Instrumen
-                        </span>
-                        <a href="{{ route('guru.rapor', ['kode' => $sekolah->kode]) }}" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-navy-900 hover:bg-navy-800 transition shadow-sm flex items-center gap-1.5 min-h-[38px]">
-                            <span>Buka Rapor Saya</span>
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        <span class="w-9 h-9 rounded-xl bg-navy-900 text-white flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                             </svg>
+                        </span>
+                        <div>
+                            <h3 class="font-bold text-navy-900 text-base">Modul Supervisi Saya (Sebagai Guru)</h3>
+                            <p class="text-xs text-muted">Akses informasi jadwal, rapor penilaian, dan riwayat supervisi Anda.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <a href="{{ route('guru.dashboard', ['kode' => $sekolah->kode]) }}" class="px-4 py-2 rounded-xl text-xs font-bold text-navy-900 bg-white border border-neutral-300 hover:bg-neutral-50 transition min-h-[38px] flex items-center">
+                            Buka Dasbor Guru
+                        </a>
+                        <a href="{{ route('guru.rapor', ['kode' => $sekolah->kode]) }}" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-navy-900 hover:bg-navy-800 transition min-h-[38px] flex items-center">
+                            Buka Rapor Saya
                         </a>
                     </div>
                 </div>
-
-                {{-- Status 5 Instrumen Saya --}}
-                <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4">
-                    @foreach($penugasanSebagaiGuru->penilaian as $penDiri)
-                        @php
-                            $namaInstrumenDiri = match($penDiri->jenisInstrumen->kode ?? '') {
-                                'pra_observasi' => 'Pra-Observasi',
-                                'telaah_perencanaan' => 'Telaah Perencanaan',
-                                'observasi_pembelajaran' => 'Observasi KBM',
-                                'refleksi_pasca_observasi' => 'Refleksi Pasca',
-                                'rencana_pengembangan_diri' => 'Pengembangan Diri',
-                                default => $penDiri->jenisInstrumen->nama ?? '-'
-                            };
-                        @endphp
-                        <div class="p-3 rounded-xl border {{ $penDiri->isFinal() ? 'bg-emerald-50/60 border-emerald-200' : ($penDiri->isDraft() ? 'bg-amber-50/60 border-amber-200' : 'bg-neutral-50 border-neutral-200') }}">
-                            <p class="text-xs font-semibold text-navy-900 truncate">{{ $namaInstrumenDiri }}</p>
-                            <p class="text-xs mt-1">
-                                @if($penDiri->isFinal())
-                                    <span class="font-bold text-emerald-700">{{ number_format($penDiri->nilai, 2) }}</span> <span class="text-[11px] text-emerald-600 font-medium">({{ $penDiri->predikat }})</span>
-                                @elseif($penDiri->isDraft())
-                                    <span class="text-amber-700 font-medium">Sedang dinilai</span>
-                                @elseif($penDiri->isDirevisi())
-                                    <span class="text-orange-700 font-medium">Sedang direvisi</span>
-                                @else
-                                    <span class="text-neutral-500">Belum dinilai</span>
-                                @endif
-                            </p>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        @elseif(auth()->user()?->hasRole('guru'))
-            <div class="mb-6 bg-navy-50/70 border border-navy-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div class="flex items-center gap-3">
-                    <span class="w-9 h-9 rounded-xl bg-navy-900 text-white flex items-center justify-center flex-shrink-0">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                        </svg>
-                    </span>
-                    <div>
-                        <h3 class="font-bold text-navy-900 text-base">Modul Supervisi Saya (Sebagai Guru)</h3>
-                        <p class="text-xs text-muted">Akses informasi jadwal, rapor penilaian, dan riwayat supervisi Anda.</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <a href="{{ route('guru.dashboard', ['kode' => $sekolah->kode]) }}" class="px-4 py-2 rounded-xl text-xs font-bold text-navy-900 bg-white border border-neutral-300 hover:bg-neutral-50 transition min-h-[38px] flex items-center">
-                        Buka Dasbor Guru
-                    </a>
-                    <a href="{{ route('guru.rapor', ['kode' => $sekolah->kode]) }}" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-navy-900 hover:bg-navy-800 transition min-h-[38px] flex items-center">
-                        Buka Rapor Saya
-                    </a>
-                </div>
-            </div>
-        @endif
+            @endif
+        </div>
 
         <div class="mb-4 flex items-center justify-between">
             <h3 class="text-lg font-bold text-navy-900">Daftar Guru Binaan Anda</h3>

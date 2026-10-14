@@ -2,7 +2,7 @@
 
     <x-page-header
         title="Template Instrumen Global"
-        subtitle="Kelola instrumen penilaian standar nasional (KBM, Administrasi, Pengelolaan Kelas, Perencanaan) yang menjadi acuan seluruh sekolah."
+        subtitle="Kelola 5 instrumen penilaian standar nasional resmi (Pembelajaran Mendalam & Kerangka Asesmen Autentik) yang menjadi acuan seluruh sekolah."
     />
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
