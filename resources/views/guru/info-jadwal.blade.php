@@ -1,7 +1,7 @@
 <x-app-layout :namaSekolah="$sekolah->nama" title="Pengajuan & Informasi Supervisi">
 
     <x-page-header
-        title="{{ $penugasan ? 'Informasi & Jadwal Supervisi' : 'Pengajuan Supervisi Akademik' }}"
+        title="{{ $penugasan ? 'Informasi dan Jadwal Supervisi' : 'Pengajuan Supervisi Akademik' }}"
         subtitle="Pilih supervisor penilai, lengkapi informasi kelas, mata pelajaran, serta usulan jadwal observasi supervisi."
     >
         <x-slot:actions>
