@@ -34,7 +34,7 @@ class PenilaianPolicy extends BasePolicy
 
     /**
      * Hak mengakses formulir dan melakukan penilaian (hanya supervisor yang ditugaskan).
-     * Admin TIDAK menilai. Guru tidak bisa mengakses form penilaian.
+     * Terkunci jika tahap prasyarat sebelumnya belum berstatus final.
      */
     public function update(User $user, Penilaian $penilaian): bool
     {
@@ -50,9 +50,42 @@ class PenilaianPolicy extends BasePolicy
             return false;
         }
 
+        // Terkunci jika tahap sebelumnya belum diselesaikan (final)
+        if ($penilaian->isTerkunciPrasyarat()) {
+            return false;
+        }
+
         // Hanya supervisor yang ditugaskan yang berwenang menilai
         return $user->hasRole('supervisor')
             && (int) $penilaian->penugasan?->penilai_id === (int) $user->id;
+    }
+
+    /**
+     * Hak pengisian mandiri oleh Guru (khusus Pra-Observasi, Refleksi Pasca, dan Rencana Pengembangan Diri).
+     * Terkunci jika tahap prasyarat sebelumnya belum berstatus final.
+     */
+    public function isiMandiri(User $user, Penilaian $penilaian): bool
+    {
+        $this->checkTenant($user, $penilaian);
+
+        if ($penilaian->penugasan?->periode?->isDitutup()) {
+            return false;
+        }
+
+        if ($penilaian->isFinal()) {
+            return false;
+        }
+
+        if (! $penilaian->isDiisiMandiriGuru()) {
+            return false;
+        }
+
+        if ($penilaian->isTerkunciPrasyarat()) {
+            return false;
+        }
+
+        return $user->hasRole('guru')
+            && (int) $penilaian->penugasan?->guru_id === (int) $user->id;
     }
 
     /**

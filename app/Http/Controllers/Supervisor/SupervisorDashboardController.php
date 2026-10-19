@@ -8,6 +8,7 @@ use App\Models\Penugasan;
 use App\Models\Periode;
 use App\Models\Sekolah;
 use App\Services\PenilaianService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -73,7 +74,7 @@ class SupervisorDashboardController extends Controller
     /**
      * Formulir Penilaian: Komponen interaktif penilaian instrumen.
      */
-    public function showPenilaian(Request $request, string $kode, Penilaian $penilaian): View
+    public function showPenilaian(Request $request, string $kode, Penilaian $penilaian): View|RedirectResponse
     {
         $sekolah = Sekolah::where('kode', $kode)->firstOrFail();
         $user = Auth::user();
@@ -81,6 +82,17 @@ class SupervisorDashboardController extends Controller
         // Guru tidak bisa mengakses form penilaian; Admin tidak menilai; Hanya supervisor penilai
         if (! $penilaian->penugasan || (int) $penilaian->penugasan->penilai_id !== (int) $user->id) {
             abort(403, 'Hanya supervisor penilai yang dapat mengakses lembar penilaian ini.');
+        }
+
+        // Cek apakah terkunci oleh prasyarat tahapan sebelumnya
+        if ($penilaian->isTerkunciPrasyarat()) {
+            $tahapPrasyarat = $penilaian->tahapPrasyarat();
+            $namaTahap = $tahapPrasyarat?->jenisInstrumen?->nama ?? 'tahap sebelumnya';
+
+            return redirect()->route('supervisor.penugasan.show', [
+                'kode' => $kode,
+                'penugasan' => $penilaian->penugasan,
+            ])->with('galat', 'Instrumen ini belum dapat dibuka karena '.$namaTahap.' belum difinalisasi.');
         }
 
         // Jika status masih belum, inisialisasi ke status draft dan kunci versi aktif

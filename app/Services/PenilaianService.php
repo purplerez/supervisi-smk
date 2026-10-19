@@ -27,6 +27,10 @@ class PenilaianService
             throw new DomainException('Periode supervisi telah ditutup.');
         }
 
+        if ($penilaian->isTerkunciPrasyarat()) {
+            throw new DomainException('Tahap instrumen sebelumnya belum diselesaikan.');
+        }
+
         if ($penilaian->status === 'belum') {
             $versi = $this->instrumenResolver->resolve(
                 $penilaian->jenisInstrumen->kode,
@@ -70,6 +74,10 @@ class PenilaianService
 
         if ($penilaian->penugasan?->periode?->isDitutup()) {
             throw new DomainException('Penilaian tidak dapat diubah karena periode supervisi telah ditutup.');
+        }
+
+        if ($penilaian->isTerkunciPrasyarat()) {
+            throw new DomainException('Tahap instrumen sebelumnya belum diselesaikan.');
         }
 
         if (! in_array($penilaian->status, ['belum', 'draft', 'direvisi'], true)) {
@@ -141,6 +149,91 @@ class PenilaianService
     }
 
     /**
+     * Simpan pengisian mandiri oleh guru (catatan butir dan data kualitatif).
+     *
+     * @param  array<int, string|null>  $catatanButir
+     * @param  array<string, mixed>|null  $dataKualitatif
+     */
+    public function simpanMandiriGuru(
+        Penilaian $penilaian,
+        array $catatanButir = [],
+        ?array $dataKualitatif = null,
+        bool $isKirimKeSupervisor = false,
+        ?User $guru = null
+    ): Penilaian {
+        $guru = $guru ?? auth()->user();
+
+        if ($penilaian->isFinal()) {
+            throw new DomainException('Penilaian telah difinalisasi dan terkunci.');
+        }
+
+        if ($penilaian->penugasan?->periode?->isDitutup()) {
+            throw new DomainException('Periode supervisi telah ditutup.');
+        }
+
+        if ($penilaian->isTerkunciPrasyarat()) {
+            throw new DomainException('Tahap instrumen sebelumnya belum diselesaikan.');
+        }
+
+        if (! $penilaian->isDiisiMandiriGuru()) {
+            throw new DomainException('Instrumen ini tidak mendukung pengisian mandiri oleh guru.');
+        }
+
+        return $penilaian->getConnection()->transaction(function () use (
+            $penilaian,
+            $catatanButir,
+            $dataKualitatif,
+            $isKirimKeSupervisor,
+            $guru
+        ) {
+            // Jika status masih 'belum', inisialisasi versi aktif dan ubah ke 'draft'
+            if ($penilaian->status === 'belum') {
+                $versi = $this->instrumenResolver->resolve(
+                    $penilaian->jenisInstrumen->kode,
+                    $penilaian->sekolah_id
+                );
+
+                if (! $versi) {
+                    throw new DomainException('Tidak ada versi instrumen terbit untuk '.$penilaian->jenisInstrumen->nama.'.');
+                }
+
+                $penilaian->versi_instrumen_id = $versi->id;
+                $penilaian->status = 'draft';
+            }
+
+            // Simpan catatan/jawaban per butir
+            foreach ($catatanButir as $butirId => $teksCatatan) {
+                if ($teksCatatan !== null && trim($teksCatatan) !== '') {
+                    $penilaian->penilaianButir()->updateOrCreate(
+                        ['butir_instrumen_id' => $butirId],
+                        [
+                            'skor' => null,
+                            'catatan' => $teksCatatan,
+                        ]
+                    );
+                }
+            }
+
+            // Merge data kualitatif dengan state penyerahan guru
+            $payloadKualitatif = $penilaian->data_kualitatif ?? [];
+            if ($dataKualitatif !== null) {
+                $payloadKualitatif = array_merge($payloadKualitatif, $dataKualitatif);
+            }
+
+            if ($isKirimKeSupervisor) {
+                $payloadKualitatif['guru_selesai'] = true;
+                $payloadKualitatif['guru_submitted_at'] = now()->toDateTimeString();
+            }
+
+            $penilaian->data_kualitatif = $payloadKualitatif;
+            $penilaian->diperbarui_oleh = $guru?->id;
+            $penilaian->save();
+
+            return $penilaian;
+        });
+    }
+
+    /**
      * Finalisasi penilaian: memvalidasi isian, menghitung total skor jika kuantitatif,
      * mengisi finalized_at, dan mengubah status menjadi final.
      * Dicatat ke tabel audit_log secara rinci.
@@ -157,6 +250,10 @@ class PenilaianService
 
         if ($penilaian->penugasan?->periode?->isDitutup()) {
             throw new DomainException('Penilaian tidak dapat difinalisasi karena periode supervisi telah ditutup.');
+        }
+
+        if ($penilaian->isTerkunciPrasyarat()) {
+            throw new DomainException('Penilaian ini tidak dapat difinalisasi karena tahap instrumen sebelumnya belum diselesaikan.');
         }
 
         if (! in_array($penilaian->status, ['draft', 'direvisi'], true)) {

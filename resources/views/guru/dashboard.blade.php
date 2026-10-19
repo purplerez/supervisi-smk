@@ -235,9 +235,13 @@
                         $penilaianItem = $penugasan->penilaian->firstWhere('jenisInstrumen.kode', $kodeInstrumen);
                         $status = $penilaianItem?->status ?? 'belum';
                         $jadwalItem = $penugasan->jadwalSupervisi->firstWhere('jenisInstrumen.kode', $kodeInstrumen);
+                        $isTerkunci = $penilaianItem ? $penilaianItem->isTerkunciPrasyarat() : false;
+                        $tahapPrasyarat = $penilaianItem ? $penilaianItem->tahapPrasyarat() : null;
+                        $isDiisiGuru = $penilaianItem ? $penilaianItem->isDiisiMandiriGuru() : false;
+                        $guruSudahKirim = $penilaianItem ? $penilaianItem->isGuruSudahSubmit() : false;
                     @endphp
 
-                    <div class="p-5 rounded-2xl border border-slate-100 hover:border-slate-300 transition-all duration-150 hover:shadow-xs bg-white">
+                    <div class="p-5 rounded-2xl border {{ $isTerkunci ? 'bg-slate-50/60 border-slate-200 opacity-90' : 'bg-white border-slate-100 hover:border-slate-300 shadow-xs' }} transition-all duration-150">
                         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             {{-- Sisi Kiri: Nomor Tahap, Judul, dan Deskripsi --}}
                             <div class="flex items-start gap-4">
@@ -246,6 +250,8 @@
                                     style="
                                         @if($status === 'final')
                                             background-color: #E8F5E9; color: #1B5E20; border: 1.5px solid #A5D6A7;
+                                        @elseif($isTerkunci)
+                                            background-color: #F1F5F9; color: #94A3B8; border: 1.5px solid #CBD5E1;
                                         @elseif($status === 'draft')
                                             background-color: #FFF3D6; color: #8A5A00; border: 1.5px solid #FFE082;
                                         @elseif($status === 'direvisi')
@@ -259,6 +265,10 @@
                                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
                                             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                                         </svg>
+                                    @elseif($isTerkunci)
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                        </svg>
                                     @else
                                         {{ $meta['no'] }}
                                     @endif
@@ -266,26 +276,31 @@
 
                                 <div>
                                     <div class="flex flex-wrap items-center gap-2">
-                                        <h3 class="text-base font-bold" style="color: var(--color-navy-900);">
+                                        <h3 class="text-base font-bold {{ $isTerkunci ? 'text-slate-500' : 'text-navy-900' }}">
                                             {{ $meta['judul'] }}
                                         </h3>
 
-                                        {{-- Badge Status Supervisi --}}
-                                        @if($status === 'belum')
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold" style="background-color: #EEF0F4; color: #4B5563;">
-                                                Belum dinilai
-                                            </span>
-                                        @elseif($status === 'draft')
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold" style="background-color: #FFF3D6; color: #8A5A00;">
-                                                Sedang dinilai
-                                            </span>
-                                        @elseif($status === 'final')
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold" style="background-color: #E8F5E9; color: #1B5E20;">
-                                                Selesai
+                                        {{-- Badge Status Supervisi (Sesuai AGENTS.md: Belum dinilai / Sedang dinilai / Sedang direvisi / Final) --}}
+                                        @if($status === 'final')
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                                                Final
                                             </span>
                                         @elseif($status === 'direvisi')
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold" style="background-color: #FDE8D4; color: #8A3B00;">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
                                                 Sedang direvisi
+                                            </span>
+                                        @elseif($status === 'draft')
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                                                Sedang dinilai @if($isDiisiGuru && $guruSudahKirim) (Terkirim) @endif
+                                            </span>
+                                        @elseif($isTerkunci)
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-200 text-slate-700">
+                                                <svg class="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                                                Terkunci (Selesaikan Tahap {{ $tahapPrasyarat?->nomor_tahap ?? ($meta['no'] - 1) }} Dahulu)
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
+                                                Belum dinilai
                                             </span>
                                         @endif
                                     </div>
@@ -306,8 +321,8 @@
                                 </div>
                             </div>
 
-                            {{-- Sisi Kanan: Nilai (Hanya Tampil Jika Status FINAL) --}}
-                            <div class="md:text-right shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-gray-100">
+                            {{-- Sisi Kanan: Tombol Aksi / Nilai --}}
+                            <div class="md:text-right shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-gray-100 flex flex-col md:items-end justify-center gap-2">
                                 @if($status === 'final')
                                     <div class="flex md:flex-col items-center md:items-end justify-between gap-2">
                                         @if($penilaianItem->isKuantitatif())
@@ -326,7 +341,13 @@
                                             </div>
                                         @endif
                                     </div>
-                                    <div class="mt-2 flex items-center md:justify-end">
+                                    <div class="mt-1 flex items-center md:justify-end gap-3">
+                                        @if($isDiisiGuru)
+                                            <a href="{{ route('guru.penilaian.show', ['kode' => $sekolah->kode, 'penilaian' => $penilaianItem]) }}"
+                                               class="text-xs font-semibold text-navy-700 hover:text-navy-900 hover:underline">
+                                                Lihat Dokumen
+                                            </a>
+                                        @endif
                                         <a href="{{ route('penilaian.cetak-pdf', ['kode' => $sekolah->kode, 'penilaian' => $penilaianItem]) }}"
                                            target="_blank"
                                            class="inline-flex items-center gap-1.5 text-xs font-semibold text-navy-900 hover:text-navy-700 underline focus:ring-2 focus:ring-orange-500 focus:outline-none rounded">
@@ -336,22 +357,26 @@
                                             Cetak PDF
                                         </a>
                                     </div>
-                                    @if($penilaianItem->catatan)
-                                        <p class="text-xs text-gray-500 italic mt-1 max-w-xs md:truncate" title="{{ $penilaianItem->catatan }}">
-                                            "{{ Str::limit($penilaianItem->catatan, 60) }}"
-                                        </p>
-                                    @endif
-                                @elseif($status === 'direvisi')
-                                    <span class="text-xs font-medium text-amber-800 italic block">
-                                        Dalam penyesuaian oleh penilai
+                                @elseif($isTerkunci)
+                                    <span class="text-xs font-medium text-slate-400 italic block">
+                                        Terkunci oleh prasyarat
                                     </span>
-                                @elseif($status === 'draft')
-                                    <span class="text-xs font-medium text-amber-700 italic block">
-                                        Penilaian sedang berlangsung
-                                    </span>
+                                @elseif($isDiisiGuru)
+                                    {{-- Tombol Pengisian Mandiri untuk Guru --}}
+                                    <a href="{{ route('guru.penilaian.show', ['kode' => $sekolah->kode, 'penilaian' => $penilaianItem]) }}"
+                                       class="px-4 py-2 rounded-xl text-xs font-bold text-white transition min-h-[38px] flex items-center gap-1.5 shadow-xs
+                                              {{ $guruSudahKirim ? 'bg-navy-900 hover:bg-navy-800' : 'bg-[#2E7D32] hover:bg-[#256628]' }}">
+                                        @if($guruSudahKirim)
+                                            <span>Lihat / Perbarui Isian</span>
+                                        @elseif($status === 'draft')
+                                            <span>Lanjutkan Isi Draf &rarr;</span>
+                                        @else
+                                            <span>Isi Lembar Ini &rarr;</span>
+                                        @endif
+                                    </a>
                                 @else
-                                    <span class="text-xs font-medium text-gray-400 italic block">
-                                        Belum dijadwalkan / dinilai
+                                    <span class="text-xs font-medium text-amber-700 italic block">
+                                        Dinilai langsung oleh Supervisor saat observasi
                                     </span>
                                 @endif
                             </div>

@@ -186,4 +186,100 @@ class Penilaian extends Model
     {
         return ! $this->isKuantitatif();
     }
+
+    /**
+     * Urutan standar 5 tahap instrumen supervisi resmi Kemendikdasmen.
+     *
+     * @var array<int, string>
+     */
+    public const URUTAN_KODE = [
+        1 => 'pra_observasi',
+        2 => 'telaah_perencanaan',
+        3 => 'observasi_pembelajaran',
+        4 => 'refleksi_pasca_observasi',
+        5 => 'rencana_pengembangan_diri',
+    ];
+
+    /**
+     * Dapatkan nomor urutan tahap instrumen ini (1 s/d 5).
+     */
+    public function getNomorTahapAttribute(): int
+    {
+        $kode = $this->jenisInstrumen?->kode;
+        $tahap = array_search($kode, self::URUTAN_KODE, true);
+
+        return $tahap !== false ? (int) $tahap : 99;
+    }
+
+    /**
+     * Dapatkan penilaian tahap prasyarat langsung sebelumnya pada penugasan yang sama.
+     */
+    public function tahapPrasyarat(): ?Penilaian
+    {
+        $nomorTahap = $this->nomor_tahap;
+        if ($nomorTahap <= 1) {
+            return null;
+        }
+
+        $kodePrasyarat = self::URUTAN_KODE[$nomorTahap - 1] ?? null;
+        if (! $kodePrasyarat) {
+            return null;
+        }
+
+        if ($this->relationLoaded('penugasan') && $this->penugasan?->relationLoaded('penilaian')) {
+            return $this->penugasan->penilaian
+                ->first(fn ($p) => ($p->jenisInstrumen?->kode ?? '') === $kodePrasyarat);
+        }
+
+        return static::where('penugasan_id', $this->penugasan_id)
+            ->whereHas('jenisInstrumen', fn ($q) => $q->where('kode', $kodePrasyarat))
+            ->first();
+    }
+
+    /**
+     * Cek apakah penilaian ini terkunci oleh tahap prasyarat yang belum final.
+     */
+    public function isTerkunciPrasyarat(): bool
+    {
+        $prasyarat = $this->tahapPrasyarat();
+        if (! $prasyarat) {
+            return false;
+        }
+
+        return ! $prasyarat->isFinal();
+    }
+
+    /**
+     * Cek apakah instrumen ini diisi mandiri oleh guru terlebih dahulu.
+     */
+    public function isDiisiMandiriGuru(): bool
+    {
+        $kode = $this->jenisInstrumen?->kode;
+
+        return in_array($kode, ['pra_observasi', 'refleksi_pasca_observasi', 'rencana_pengembangan_diri'], true);
+    }
+
+    /**
+     * Cek apakah guru sudah mengirimkan/memfinalisasi pengisian mandirinya ke supervisor.
+     */
+    public function isGuruSudahSubmit(): bool
+    {
+        if (! $this->isDiisiMandiriGuru()) {
+            return false;
+        }
+
+        $data = $this->data_kualitatif ?? [];
+
+        return ! empty($data['guru_selesai']);
+    }
+
+    /**
+     * Cek apakah instrumen memerlukan tinjauan supervisor (guru sudah kirim tetapi supervisor belum final).
+     */
+    public function isMenungguTinjauanSupervisor(): bool
+    {
+        return $this->isDiisiMandiriGuru()
+            && $this->isGuruSudahSubmit()
+            && ! $this->isFinal();
+    }
 }

@@ -230,8 +230,11 @@
                         @php
                             $selesaiCount = $item->penilaian->where('status', 'final')->count();
                             $persenSelesai = round(($selesaiCount / 5) * 100);
+                            $praObservasiPerluTinjau = $item->penilaian->first(fn ($p) => ($p->jenisInstrumen?->kode === 'pra_observasi') && $p->isMenungguTinjauanSupervisor());
+                            $refleksiPerluTinjau = $item->penilaian->first(fn ($p) => ($p->jenisInstrumen?->kode === 'refleksi_pasca_observasi') && $p->isMenungguTinjauanSupervisor());
+                            $rencanaPerluTinjau = $item->penilaian->first(fn ($p) => ($p->jenisInstrumen?->kode === 'rencana_pengembangan_diri') && $p->isMenungguTinjauanSupervisor());
                         @endphp
-                        <div class="bg-white rounded-2xl shadow-xs border border-slate-100 hover:border-slate-300 p-6 transition-all duration-150 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                        <div class="bg-white rounded-2xl shadow-xs border {{ $praObservasiPerluTinjau || $refleksiPerluTinjau || $rencanaPerluTinjau ? 'border-amber-400 ring-2 ring-amber-100' : 'border-slate-100 hover:border-slate-300' }} p-6 transition-all duration-150 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                             {{-- Info Guru & Progres --}}
                             <div class="space-y-3 flex-1">
                                 <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
@@ -241,6 +244,26 @@
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold {{ $selesaiCount === 5 ? 'bg-emerald-100 text-emerald-800' : 'bg-navy-50 text-navy-900' }}">
                                         Progres: {{ $selesaiCount }}/5 Instrumen
                                     </span>
+
+                                    {{-- Notifikasi Standout Pengisian Mandiri Guru yang Siap Ditinjau --}}
+                                    @if($praObservasiPerluTinjau)
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm ring-2 ring-orange-300">
+                                            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
+                                            Pra-Observasi Siap Ditinjau
+                                        </span>
+                                    @endif
+                                    @if($refleksiPerluTinjau)
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm ring-2 ring-orange-300">
+                                            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
+                                            Refleksi Pasca Siap Ditinjau
+                                        </span>
+                                    @endif
+                                    @if($rencanaPerluTinjau)
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm ring-2 ring-orange-300">
+                                            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
+                                            Rencana Aksi Siap Ditinjau
+                                        </span>
+                                    @endif
                                 </div>
                                 <div class="flex flex-wrap items-center gap-y-1 gap-x-3 text-sm text-muted">
                                     <span>NIP: {{ $item->guru->nip ?: '-' }} &bull; NUPTK: {{ $item->guru->nuptk ?: '-' }}</span>
@@ -272,17 +295,23 @@
                                                 'rencana_pengembangan_diri' => 'Pengembangan Diri',
                                                 default => $pen->jenisInstrumen->nama ?? '-'
                                             };
+                                            $terkunciPrasyarat = $pen->isTerkunciPrasyarat();
+                                            $menungguTinjauan = $pen->isMenungguTinjauanSupervisor();
                                         @endphp
                                         <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium border
                                             {{ $pen->isFinal() ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : '' }}
-                                            {{ $pen->isDraft() ? 'bg-amber-50 text-amber-800 border-amber-200' : '' }}
+                                            {{ $menungguTinjauan ? 'bg-amber-100 text-amber-950 border-amber-300 font-bold' : '' }}
+                                            {{ ! $menungguTinjauan && $pen->isDraft() ? 'bg-amber-50 text-amber-800 border-amber-200' : '' }}
                                             {{ $pen->isDirevisi() ? 'bg-orange-50 text-orange-800 border-orange-200' : '' }}
-                                            {{ $pen->isBelum() ? 'bg-neutral-50 text-neutral-600 border-neutral-200' : '' }}">
+                                            {{ ! $terkunciPrasyarat && $pen->isBelum() ? 'bg-neutral-50 text-neutral-600 border-neutral-200' : '' }}
+                                            {{ $terkunciPrasyarat ? 'bg-slate-50 text-slate-400 border-slate-200' : '' }}">
                                             <span class="font-semibold">{{ $namaInstrumen }}:</span>
                                             <span>
                                                 @if($pen->isFinal()) Final
+                                                @elseif($menungguTinjauan) Siap Ditinjau
                                                 @elseif($pen->isDraft()) Draft
                                                 @elseif($pen->isDirevisi()) Direvisi
+                                                @elseif($terkunciPrasyarat) Terkunci
                                                 @else Belum Dinilai
                                                 @endif
                                             </span>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Guru;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Guru\SimpanInfoJadwalRequest;
 use App\Models\JenisInstrumen;
+use App\Models\Penilaian;
 use App\Models\Periode;
 use App\Models\Sekolah;
 use App\Services\GuruSupervisiService;
@@ -277,5 +278,47 @@ class GuruDashboardController extends Controller
             'guru' => $guru,
             'riwayat' => $riwayat,
         ]);
+    }
+
+    /**
+     * Halaman Pengisian Mandiri Instrumen oleh Guru (Pra-Observasi, Refleksi, Rencana Pengembangan Diri).
+     */
+    public function showPenilaian(Request $request, string $kode, Penilaian $penilaian): View|RedirectResponse
+    {
+        $sekolah = Sekolah::where('kode', $kode)->firstOrFail();
+        $guru = $request->user();
+
+        // Otorisasi: hanya guru yang dinilai
+        if (! $penilaian->penugasan || (int) $penilaian->penugasan->guru_id !== (int) $guru->id) {
+            abort(403, 'Anda tidak memiliki hak akses terhadap lembar instrumen ini.');
+        }
+
+        // Cek apakah instrumen ini merupakan instrumen pengisian mandiri oleh guru
+        if (! $penilaian->isDiisiMandiriGuru()) {
+            return redirect()
+                ->route('guru.dashboard', ['kode' => $kode])
+                ->with('galat', 'Instrumen ini dinilai langsung oleh Supervisor saat observasi kelas.');
+        }
+
+        // Cek apakah terkunci oleh prasyarat
+        if ($penilaian->isTerkunciPrasyarat()) {
+            $tahapPrasyarat = $penilaian->tahapPrasyarat();
+            $namaTahap = $tahapPrasyarat?->jenisInstrumen?->nama ?? 'tahap sebelumnya';
+
+            return redirect()
+                ->route('guru.dashboard', ['kode' => $kode])
+                ->with('peringatan', 'Instrumen ini masih terkunci. Harap selesaikan '.$namaTahap.' terlebih dahulu.');
+        }
+
+        $penilaian->load([
+            'penugasan.guru',
+            'penugasan.penilai',
+            'penugasan.periode',
+            'jenisInstrumen',
+            'versiInstrumen.bagian.butir',
+            'penilaianButir',
+        ]);
+
+        return view('guru.penilaian', compact('sekolah', 'guru', 'penilaian'));
     }
 }

@@ -201,6 +201,7 @@ Route::prefix('s/{kode}')->middleware(['tenant'])->group(function () {
             Route::get('/dashboard', [GuruDashboardController::class, 'index'])->name('dashboard');
             Route::get('/informasi', [GuruDashboardController::class, 'infoJadwal'])->name('info-jadwal');
             Route::post('/informasi', [GuruDashboardController::class, 'simpanInfoJadwal'])->name('info-jadwal.simpan');
+            Route::get('/penilaian/{penilaian}', [GuruDashboardController::class, 'showPenilaian'])->name('penilaian.show');
             Route::get('/rapor/{periode?}', [GuruDashboardController::class, 'rapor'])->name('rapor');
             Route::get('/riwayat', [GuruDashboardController::class, 'riwayat'])->name('riwayat');
         });

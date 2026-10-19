@@ -94,15 +94,42 @@
                 <span>Dokumen ini telah <strong>Final</strong> pada {{ $penilaian->finalized_at?->translatedFormat('d F Y, H:i') }} oleh {{ $penilaian->finalizedBy?->nama }}. Data terkunci dan tidak dapat diubah lagi kecuali dibuka kembali oleh Admin.</span>
             </div>
         @else
-            <div class="mt-4 text-[15px] text-muted">
-                @if ($penilaian->isKuantitatif())
-                    Beri skala penilaian (0-4) pada setiap aspek pengamatan di bawah ini. Anda dapat melengkapi bukti yang teramati serta catatan supervisor sebelum memfinalisasi.
-                @elseif ($penilaian->jenisInstrumen?->kode === 'rencana_pengembangan_diri')
-                    Susun rencana aksi pengembangan keprofesian guru hasil tindak lanjut supervisi pada tabel rencana aksi di bawah ini.
+            @if ($penilaian->isDiisiMandiriGuru())
+                @if ($penilaian->isGuruSudahSubmit())
+                    <div class="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-300 flex items-start gap-3 shadow-sm">
+                        <div class="w-8 h-8 rounded-full bg-amber-200 text-amber-900 flex items-center justify-center shrink-0 mt-0.5 font-bold text-base">
+                            🔔
+                        </div>
+                        <div class="text-[15px] text-amber-950">
+                            <p class="font-bold text-amber-900">Guru Telah Menyerahkan Isian Mandiri</p>
+                            <p class="mt-0.5 text-amber-800">
+                                Diserahkan pada {{ \Carbon\Carbon::parse($penilaian->data_kualitatif['guru_submitted_at'] ?? now())->translatedFormat('d F Y, H:i') }}. 
+                                Silakan tinjau respon guru di bawah ini, lalu isi <strong class="text-navy-900">Catatan Umum / Rekomendasi Supervisor</strong> dan <strong class="text-navy-900">Rencana Tindak Lanjut Pembinaan</strong> sebelum memfinalisasi lembar ini.
+                            </p>
+                        </div>
+                    </div>
                 @else
-                    Lengkapi catatan dialogis supervisi di bawah ini bersama guru yang disupervisi.
+                    <div class="mt-4 p-3.5 rounded-xl bg-sky-50 border border-sky-200 flex items-start gap-3">
+                        <div class="w-7 h-7 rounded-full bg-sky-200 text-sky-900 flex items-center justify-center shrink-0 mt-0.5 font-bold text-sm">
+                            ℹ️
+                        </div>
+                        <div class="text-[14px] text-sky-950">
+                            <p class="font-semibold text-sky-900">Menunggu Penyerahan Mandiri Guru</p>
+                            <p class="mt-0.5 text-sky-800">
+                                Guru belum mengirimkan lembar ini melalui dasbor guru. Anda dapat menunggu guru atau melengkapinya bersama saat supervisi dialogis.
+                            </p>
+                        </div>
+                    </div>
                 @endif
-            </div>
+            @else
+                <div class="mt-4 text-[15px] text-muted">
+                    @if ($penilaian->isKuantitatif())
+                        Beri skala penilaian (0-4) pada setiap aspek pengamatan di bawah ini. Anda dapat melengkapi bukti yang teramati serta catatan supervisor sebelum memfinalisasi.
+                    @else
+                        Lengkapi catatan dialogis supervisi di bawah ini bersama guru yang disupervisi.
+                    @endif
+                </div>
+            @endif
         @endif
     </div>
 
@@ -354,14 +381,37 @@
 
                                             {{-- B. JIKA INSTRUMEN KUALITATIF / DIALOGIS --}}
                                             @else
-                                                <div>
-                                                    <label class="block text-xs font-semibold text-navy-900 mb-1.5">Catatan Hasil Percakapan / Refleksi:</label>
-                                                    <textarea wire:model.blur="catatanButir.{{ $butir->id }}"
-                                                              rows="3"
-                                                              {{ $penilaian->isFinal() ? 'disabled' : '' }}
-                                                              placeholder="Tuliskan hasil diskusi, jawaban guru, atau catatan reflektif..." 
-                                                              class="w-full text-[15px] border-neutral-300 rounded-lg focus:border-navy-700 focus:ring focus:ring-orange-500/20 disabled:bg-neutral-50 disabled:text-neutral-500"></textarea>
-                                                </div>
+                                                @if ($penilaian->isDiisiMandiriGuru())
+                                                    <div class="space-y-1.5">
+                                                        <div class="flex items-center justify-between">
+                                                            <label class="text-xs font-bold text-navy-900 flex items-center gap-1.5">
+                                                                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                                                </svg>
+                                                                <span>Isian / Respon Guru:</span>
+                                                            </label>
+                                                            @if (!empty($catatanButir[$butir->id]))
+                                                                <span class="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Terisi oleh Guru</span>
+                                                            @else
+                                                                <span class="text-[11px] text-muted bg-neutral-100 px-2 py-0.5 rounded">Belum diisi guru</span>
+                                                            @endif
+                                                        </div>
+                                                        <textarea wire:model.blur="catatanButir.{{ $butir->id }}"
+                                                                  rows="3"
+                                                                  {{ $penilaian->isFinal() ? 'disabled' : '' }}
+                                                                  placeholder="Jawaban atau catatan guru untuk aspek ini..." 
+                                                                  class="w-full text-[15px] border-neutral-300 rounded-lg focus:border-navy-700 focus:ring focus:ring-orange-500/20 disabled:bg-neutral-50 disabled:text-neutral-500"></textarea>
+                                                    </div>
+                                                @else
+                                                    <div>
+                                                        <label class="block text-xs font-semibold text-navy-900 mb-1.5">Catatan Hasil Percakapan / Refleksi:</label>
+                                                        <textarea wire:model.blur="catatanButir.{{ $butir->id }}"
+                                                                  rows="3"
+                                                                  {{ $penilaian->isFinal() ? 'disabled' : '' }}
+                                                                  placeholder="Tuliskan hasil diskusi, jawaban guru, atau catatan reflektif..." 
+                                                                  class="w-full text-[15px] border-neutral-300 rounded-lg focus:border-navy-700 focus:ring focus:ring-orange-500/20 disabled:bg-neutral-50 disabled:text-neutral-500"></textarea>
+                                                    </div>
+                                                @endif
                                             @endif
                                         </div>
                                     </div>
@@ -375,24 +425,51 @@
     @endif
 
     {{-- Kolom Catatan Umum dan Tindak Lanjut --}}
-    <div class="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 space-y-5">
-        <h3 class="text-lg font-bold text-navy-900 border-b border-neutral-100 pb-3">Kesimpulan, Rekomendasi & Tindak Lanjut</h3>
+    <div class="bg-white rounded-xl shadow-sm border {{ $penilaian->isDiisiMandiriGuru() ? 'border-navy-300 ring-2 ring-navy-100' : 'border-neutral-200' }} p-6 space-y-5">
+        <div class="border-b border-neutral-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+                <h3 class="text-lg font-bold text-navy-900 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-navy-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                    <span>Kesimpulan, Rekomendasi & Tindak Lanjut Supervisor</span>
+                </h3>
+                @if ($penilaian->isDiisiMandiriGuru())
+                    <p class="text-xs text-muted mt-0.5">Dua isian utama yang wajib dilengkapi oleh supervisor sebelum memfinalisasi lembar ini.</p>
+                @endif
+            </div>
+            @if ($penilaian->isDiisiMandiriGuru())
+                <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-navy-50 text-navy-800 border border-navy-200 self-start sm:self-auto">
+                    Wajib Diisi Supervisor
+                </span>
+            @endif
+        </div>
         
         <div>
-            <label class="block text-sm font-semibold text-ink mb-1.5">Catatan Umum / Rekomendasi Supervisor</label>
+            <label class="block text-sm font-semibold text-ink mb-1.5 flex items-center gap-1.5">
+                <span>Catatan Umum / Rekomendasi Supervisor</span>
+                @if ($penilaian->isDiisiMandiriGuru())
+                    <span class="text-rose-600 font-bold">*</span>
+                @endif
+            </label>
             <textarea wire:model="catatan" 
                       rows="3" 
                       {{ $penilaian->isFinal() ? 'disabled' : '' }}
-                      placeholder="Tuliskan catatan menyeluruh atau kesepakatan hasil supervisi..."
+                      placeholder="Tuliskan catatan apresiasi, analisis menyeluruh, atau rekomendasi perbaikan untuk guru..."
                       class="w-full text-[15px] border-neutral-300 rounded-lg focus:border-navy-700 focus:ring focus:ring-orange-500/20 disabled:bg-neutral-50 disabled:text-neutral-500"></textarea>
         </div>
 
         <div>
-            <label class="block text-sm font-semibold text-ink mb-1.5">Rencana Tindak Lanjut Pembinaan</label>
+            <label class="block text-sm font-semibold text-ink mb-1.5 flex items-center gap-1.5">
+                <span>Rencana Tindak Lanjut Pembinaan</span>
+                @if ($penilaian->isDiisiMandiriGuru())
+                    <span class="text-rose-600 font-bold">*</span>
+                @endif
+            </label>
             <textarea wire:model="tindakLanjut" 
                       rows="3" 
                       {{ $penilaian->isFinal() ? 'disabled' : '' }}
-                      placeholder="Tuliskan langkah konkret tindak lanjut yang akan dilaksanakan berikutnya..."
+                      placeholder="Tuliskan langkah konkret tindak lanjut pembinaan yang akan dilaksanakan berikutnya..."
                       class="w-full text-[15px] border-neutral-300 rounded-lg focus:border-navy-700 focus:ring focus:ring-orange-500/20 disabled:bg-neutral-50 disabled:text-neutral-500"></textarea>
         </div>
     </div>
@@ -454,6 +531,12 @@
                     @if ($penilaian->isKuantitatif() && $this->jumlahTerisi < $this->totalButir)
                         <div class="p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-800 text-sm">
                             <strong>Perhatian:</strong> Masih ada {{ $this->totalButir - $this->jumlahTerisi }} butir yang belum diberi skor. Semua butir wajib diisi sebelum finalisasi.
+                        </div>
+                    @endif
+
+                    @if ($penilaian->isDiisiMandiriGuru() && (empty(trim((string) $catatan)) || empty(trim((string) $tindakLanjut))))
+                        <div class="p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-800 text-sm">
+                            <strong>Perhatian:</strong> Kolom Catatan Umum / Rekomendasi Supervisor dan Rencana Tindak Lanjut Pembinaan wajib diisi sebelum finalisasi.
                         </div>
                     @endif
 

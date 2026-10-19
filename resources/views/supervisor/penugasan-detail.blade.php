@@ -24,6 +24,34 @@
         </x-slot:actions>
     </x-page-header>
 
+    {{-- Notifikasi Session --}}
+    @if (session('sukses'))
+        <div class="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center gap-3">
+            <svg class="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <span class="font-medium text-sm">{{ session('sukses') }}</span>
+        </div>
+    @endif
+
+    @if (session('galat'))
+        <div class="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center gap-3">
+            <svg class="w-5 h-5 text-rose-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span class="font-medium text-sm">{{ session('galat') }}</span>
+        </div>
+    @endif
+
+    @if (session('peringatan'))
+        <div class="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 flex items-center gap-3">
+            <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span class="font-medium text-sm">{{ session('peringatan') }}</span>
+        </div>
+    @endif
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {{-- Kartu Info Guru & Supervisi (Read-Only) --}}
         <div class="lg:col-span-2 space-y-6">
@@ -163,8 +191,8 @@
 
     {{-- LIMA TOMBOL INSTRUMEN RESMI SUPERVISI --}}
     <div class="space-y-4">
-        <h3 class="text-xl font-bold text-navy-900">Lembar Penilaian Supervisi (5 Instrumen Resmi)</h3>
-        <p class="text-muted text-[15px]">Klik instrumen di bawah untuk mengisi dokumen, memperbarui draft, atau melihat hasil finalisasi.</p>
+        <h3 class="text-xl font-bold text-navy-900">Lembar Penilaian Supervisi (5 Tahap Bertahap)</h3>
+        <p class="text-muted text-[15px]">Pelaksanaan supervisi wajib diselesaikan secara bertahap berurutan. Setiap tahap harus difinalisasi sebelum melanjutkan ke tahap berikutnya.</p>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             @php
@@ -177,28 +205,75 @@
             @endphp
 
             @foreach($penilaianSorted as $pen)
-                <div class="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 flex flex-col justify-between hover:border-navy-400 transition">
+                @php
+                    $nomorTahap = $pen->nomor_tahap;
+                    $isTerkunci = $pen->isTerkunciPrasyarat();
+                    $isMenunggu = $pen->isMenungguTinjauanSupervisor();
+                    $isMandiri = $pen->isDiisiMandiriGuru();
+                    $isFinal = $pen->isFinal();
+                @endphp
+
+                <div class="rounded-xl shadow-sm border p-6 flex flex-col justify-between transition {{ $isTerkunci ? 'bg-neutral-50/70 border-neutral-200 opacity-90' : ($isMenunggu ? 'bg-white border-amber-300 ring-2 ring-amber-400/30' : 'bg-white border-neutral-200 hover:border-navy-400') }}">
                     <div>
                         <div class="flex items-start justify-between gap-3 mb-2">
-                            <h4 class="text-lg font-bold text-navy-900">
-                                {{ $pen->jenisInstrumen->nama }}
-                            </h4>
-                            @if ($pen->status === 'belum')
-                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-neutral-100 text-neutral-600">Belum Dimulai</span>
+                            <div class="flex items-center gap-2">
+                                <span class="w-6 h-6 rounded-full {{ $isTerkunci ? 'bg-neutral-200 text-neutral-600' : ($isFinal ? 'bg-emerald-100 text-emerald-800' : 'bg-navy-100 text-navy-800') }} font-bold text-xs flex items-center justify-center shrink-0">
+                                    {{ $nomorTahap }}
+                                </span>
+                                <h4 class="text-lg font-bold text-navy-900">
+                                    {{ $pen->jenisInstrumen->nama }}
+                                </h4>
+                            </div>
+
+                            @if ($isTerkunci)
+                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-neutral-200 text-neutral-600 flex items-center gap-1 shrink-0">
+                                    <svg class="w-3.5 h-3.5 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                    </svg>
+                                    Terkunci
+                                </span>
+                            @elseif ($isMenunggu)
+                                <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1.5 shadow-sm shrink-0">
+                                    <span class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+                                    🔔 Siap Ditinjau
+                                </span>
+                            @elseif ($pen->status === 'belum')
+                                @if ($isMandiri)
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-50 text-sky-800 border border-sky-200 shrink-0">Isian Guru</span>
+                                @else
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-neutral-100 text-neutral-600 shrink-0">Belum Dimulai</span>
+                                @endif
                             @elseif ($pen->status === 'draft')
-                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Draft</span>
+                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 shrink-0">Draft</span>
                             @elseif ($pen->status === 'direvisi')
-                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">Sedang Direvisi</span>
+                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 shrink-0">Sedang Direvisi</span>
                             @elseif ($pen->status === 'final')
-                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Final</span>
+                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 shrink-0">Final</span>
                             @endif
                         </div>
 
-                        <p class="text-xs text-muted mb-4">
+                        <p class="text-xs text-muted mb-4 pl-8">
                             Kode: {{ strtoupper($pen->jenisInstrumen->kode) }} &bull; Versi: v{{ $pen->versiInstrumen?->nomor_versi ?? '1' }}
+                            @if($isMandiri)
+                                &bull; <span class="font-medium text-navy-700">Tahap Kolaboratif Mandiri Guru</span>
+                            @endif
                         </p>
 
-                        @if ($pen->isFinal())
+                        @if ($isTerkunci)
+                            <div class="bg-neutral-100 rounded-lg p-3 text-xs text-neutral-600 mb-4 flex items-center gap-2 border border-neutral-200">
+                                <svg class="w-4 h-4 text-neutral-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>Harus menyelesaikan dan memfinalisasi <strong>{{ $pen->tahapPrasyarat()?->jenisInstrumen?->nama ?? 'tahap sebelumnya' }}</strong> terlebih dahulu.</span>
+                            </div>
+                        @elseif ($isMenunggu)
+                            <div class="bg-amber-50 rounded-lg p-3 text-xs text-amber-900 border border-amber-200 mb-4 flex items-center gap-2">
+                                <svg class="w-4 h-4 text-amber-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span>Guru telah menyerahkan isian mandiri. Silakan periksa, lengkapi Catatan Rekomendasi & Rencana Tindak Lanjut lalu finalisasi.</span>
+                            </div>
+                        @elseif ($isFinal)
                             <div class="bg-emerald-50 rounded-lg p-3 border border-emerald-100 mb-4 flex items-center justify-between">
                                 <span class="text-xs font-semibold text-emerald-900">Status Capaian:</span>
                                 @if ($pen->isKuantitatif())
@@ -212,15 +287,17 @@
 
                     <div class="pt-3 border-t border-neutral-100 flex items-center justify-between">
                         <span class="text-xs text-muted">
-                            @if($pen->isFinal())
+                            @if($isFinal)
                                 Terkunci &bull; {{ $pen->finalized_at?->format('d/m/Y') }}
+                            @elseif($isTerkunci)
+                                Tahap {{ $nomorTahap }} dari 5
                             @else
                                 {{ $pen->isBelum() ? 'Belum dimulai' : 'Terakhir disimpan: ' . $pen->updated_at->diffForHumans() }}
                             @endif
                         </span>
 
                         <div class="flex items-center gap-2">
-                            @if($pen->isFinal())
+                            @if($isFinal)
                                 <a href="{{ route('penilaian.cetak-pdf', ['kode' => $sekolah->kode, 'penilaian' => $pen]) }}" 
                                    target="_blank"
                                    class="px-3 py-2 rounded-xl text-sm font-semibold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 min-h-[44px] flex items-center gap-1.5 transition"
@@ -232,17 +309,30 @@
                                 </a>
                             @endif
 
-                            <a href="{{ route('supervisor.penilaian.show', ['kode' => $sekolah->kode, 'penilaian' => $pen]) }}" 
-                               class="px-4 py-2 rounded-xl text-sm font-bold min-h-[44px] flex items-center gap-1.5 transition
-                               {{ $pen->isFinal() ? 'bg-navy-50 text-navy-900 hover:bg-navy-100' : 'bg-navy-900 text-white hover:bg-navy-800' }}">
-                                @if($pen->isFinal())
-                                    <span>Lihat Penilaian</span>
-                                @elseif($pen->isBelum())
-                                    <span>Mulai Menilai &rarr;</span>
-                                @else
-                                    <span>Lanjutkan Menilai &rarr;</span>
-                                @endif
-                            </a>
+                            @if($isTerkunci)
+                                <button type="button" 
+                                        disabled
+                                        class="px-4 py-2 rounded-xl text-sm font-semibold bg-neutral-200 text-neutral-500 cursor-not-allowed min-h-[44px] flex items-center gap-1.5">
+                                    <svg class="w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                    </svg>
+                                    <span>Terkunci</span>
+                                </button>
+                            @else
+                                <a href="{{ route('supervisor.penilaian.show', ['kode' => $sekolah->kode, 'penilaian' => $pen]) }}" 
+                                   class="px-4 py-2 rounded-xl text-sm font-bold min-h-[44px] flex items-center gap-1.5 transition
+                                   {{ $isFinal ? 'bg-navy-50 text-navy-900 hover:bg-navy-100' : ($isMenunggu ? 'bg-navy-900 text-white hover:bg-navy-800 shadow-md ring-2 ring-orange-500/50' : 'bg-navy-900 text-white hover:bg-navy-800') }}">
+                                    @if($isFinal)
+                                        <span>Lihat Penilaian</span>
+                                    @elseif($isMenunggu)
+                                        <span>Tinjau & Lengkapi &rarr;</span>
+                                    @elseif($pen->isBelum())
+                                        <span>Mulai Menilai &rarr;</span>
+                                    @else
+                                        <span>Lanjutkan Menilai &rarr;</span>
+                                    @endif
+                                </a>
+                            @endif
                         </div>
                     </div>
                 </div>

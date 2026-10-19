@@ -74,6 +74,11 @@ class FormPenilaian extends Component
             abort(403, 'Anda tidak memiliki akses ke penilaian ini.');
         }
 
+        // Cek penguncian prasyarat alur bertahap
+        if ($this->penilaian->isTerkunciPrasyarat()) {
+            abort(403, 'Instrumen ini belum dapat dibuka karena instrumen pada tahap sebelumnya belum difinalisasi.');
+        }
+
         // Jika status masih 'belum' dan pengguna adalah supervisor yang ditugaskan,
         // kunci versi instrumen ke versi aktif saat ini dan ubah ke 'draft'
         if ($this->penilaian->status === 'belum' && $user->can('update', $this->penilaian)) {
@@ -235,6 +240,16 @@ class FormPenilaian extends Component
             abort(403, 'Anda tidak berwenang memfinalisasi penilaian ini.');
         }
 
+        // Pada instrumen kolaboratif (pra-observasi, refleksi pasca, rencana pengembangan diri),
+        // supervisor wajib mengisi Catatan Umum dan Tindak Lanjut sebelum finalisasi
+        if ($this->penilaian->isDiisiMandiriGuru()) {
+            if (empty(trim((string) $this->catatan)) || empty(trim((string) $this->tindakLanjut))) {
+                session()->flash('galat', 'Kolom Catatan Umum / Rekomendasi Supervisor dan Rencana Tindak Lanjut Pembinaan wajib diisi sebelum finalisasi.');
+
+                return;
+            }
+        }
+
         // Simpan draf saat ini sebelum konfirmasi
         $this->simpanDraft();
 
@@ -255,6 +270,14 @@ class FormPenilaian extends Component
 
         if ($user->cannot('update', $this->penilaian)) {
             abort(403, 'Anda tidak berwenang memfinalisasi penilaian ini.');
+        }
+
+        if ($this->penilaian->isDiisiMandiriGuru()) {
+            if (empty(trim((string) $this->catatan)) || empty(trim((string) $this->tindakLanjut))) {
+                session()->flash('galat', 'Kolom Catatan Umum / Rekomendasi Supervisor dan Rencana Tindak Lanjut Pembinaan wajib diisi sebelum finalisasi.');
+
+                return;
+            }
         }
 
         $this->modalKonfirmasi = false;
