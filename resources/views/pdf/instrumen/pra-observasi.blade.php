@@ -119,19 +119,24 @@
     {{-- BLOK TANDA TANGAN --}}
     <table class="ttd-table" style="margin-top: 20px;">
         <tr>
+            <td style="width: 50%;"></td>
+            <td style="width: 50%; text-align: center; vertical-align: top;">
+                {{ $penilaian->sekolah->alamat ? explode(',', $penilaian->sekolah->alamat)[0] : 'Di Tempat' }}, 
+                {{ $penilaian->finalized_at?->translatedFormat('d F Y') ?: now()->translatedFormat('d F Y') }}
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 50%; text-align: center; vertical-align: top;">
+                Supervisor Penilai,
+                <div class="ttd-space"></div>
+                <div class="ttd-nama">{{ $penilaian->penugasan->penilai->nama }}</div>
+                <div style="font-size: 8.5pt; color: #4B5563;">NIP: {{ $penilaian->penugasan->penilai->nip ?: '-' }}</div>
+            </td>
             <td style="width: 50%; text-align: center; vertical-align: top;">
                 Guru yang Disupervisi,
                 <div class="ttd-space"></div>
                 <div class="ttd-nama">{{ $penilaian->penugasan->guru->nama }}</div>
                 <div style="font-size: 8.5pt; color: #4B5563;">NIP: {{ $penilaian->penugasan->guru->nip ?: '-' }}</div>
-            </td>
-            <td style="width: 50%; text-align: center; vertical-align: top;">
-                {{ $penilaian->sekolah->alamat ? explode(',', $penilaian->sekolah->alamat)[0] : 'Di Tempat' }}, 
-                {{ $penilaian->finalized_at?->translatedFormat('d F Y') ?: now()->translatedFormat('d F Y') }}<br>
-                Supervisor Penilai,
-                <div class="ttd-space"></div>
-                <div class="ttd-nama">{{ $penilaian->penugasan->penilai->nama }}</div>
-                <div style="font-size: 8.5pt; color: #4B5563;">NIP: {{ $penilaian->penugasan->penilai->nip ?: '-' }}</div>
             </td>
         </tr>
     </table>

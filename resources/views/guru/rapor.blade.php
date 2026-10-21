@@ -117,6 +117,18 @@
                     </span>
                 </div>
                 <div class="flex">
+                    <span class="w-36 font-semibold text-gray-600">Total Nilai Akhir</span>
+                    <span class="w-3">:</span>
+                    @if($penugasan->nilai_akhir !== null)
+                        <span class="font-bold text-emerald-800">
+                            {{ number_format($penugasan->nilai_akhir, 2, ',', '.') }}
+                            <span class="font-semibold text-gray-700">({{ $penugasan->predikat_akhir }})</span>
+                        </span>
+                    @else
+                        <span class="text-gray-500 italic">Belum tersedia (menunggu finalisasi)</span>
+                    @endif
+                </div>
+                <div class="flex">
                     <span class="w-36 font-semibold text-gray-600">Kepala Sekolah</span>
                     <span class="w-3">:</span>
                     <span>{{ $kepalaSekolah?->nama ?? '-' }}</span>
@@ -141,17 +153,26 @@
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     @php
-                        $urutanKunci = ['pra_observasi', 'telaah_perencanaan', 'observasi_pembelajaran', 'refleksi_pasca_observasi', 'rencana_pengembangan_diri'];
+                        $urutanKunci = [
+                            'pra_observasi' => 'Lembar Catatan Percakapan Pra-Observasi',
+                            'telaah_perencanaan' => 'Instrumen Telaah Perencanaan Pembelajaran',
+                            'supervisi_perangkat' => 'Instrumen Supervisi Perangkat Pembelajaran Mendalam 2026',
+                            'observasi_pembelajaran' => 'Instrumen Observasi Pelaksanaan Pembelajaran',
+                            'refleksi_pasca_observasi' => 'Instrumen Refleksi Pasca Pembelajaran',
+                            'rencana_pengembangan_diri' => 'Lembar Rencana Pengembangan Diri Guru',
+                        ];
                         $totalNilaiFinal = 0;
                         $jumlahFinal = 0;
+                        $idx = 0;
                     @endphp
 
-                    @foreach($urutanKunci as $idx => $kodeJenis)
+                    @foreach($urutanKunci as $kodeJenis => $namaBaku)
                         @php
+                            $idx++;
                             $penilaian = $penugasan->penilaian->firstWhere('jenisInstrumen.kode', $kodeJenis);
-                            $namaInstrumen = $penilaian?->jenisInstrumen?->nama ?? ucfirst(str_replace('_', ' ', $kodeJenis));
+                            $namaInstrumen = $penilaian?->jenisInstrumen?->nama ?? $namaBaku;
                             $status = $penilaian?->status ?? 'belum';
-                            $isKuantitatif = $penilaian ? $penilaian->isKuantitatif() : in_array($kodeJenis, ['telaah_perencanaan', 'observasi_pembelajaran'], true);
+                            $isKuantitatif = $penilaian ? $penilaian->isKuantitatif() : in_array($kodeJenis, ['telaah_perencanaan', 'supervisi_perangkat', 'observasi_pembelajaran'], true);
 
                             if ($status === 'final' && $penilaian && $penilaian->nilai !== null) {
                                 $totalNilaiFinal += (float) $penilaian->nilai;
@@ -256,36 +277,51 @@
                         </tr>
                     @endforeach
                 </tbody>
-                @if($progres['is_selesai'] && $jumlahFinal === 4)
-                    @php
-                        $rataRata = $totalNilaiFinal / 4;
-                    @endphp
+                @if($penugasan->nilai_akhir !== null)
                     <tfoot>
                         <tr class="bg-green-50/70 border-t-2 border-gray-400 font-bold text-gray-900">
                             <td colspan="3" class="py-3 px-3 text-right uppercase tracking-wider border-r border-gray-300">
-                                Rata-Rata Nilai Akhir Supervisi:
+                                Total Nilai Akhir (Rata-Rata Kuantitatif):
                             </td>
                             <td class="py-3 px-3 text-center text-sm text-green-800 border-r border-gray-300">
-                                {{ number_format($rataRata, 2, ',', '.') }}
+                                {{ number_format($penugasan->nilai_akhir, 2, ',', '.') }}
                             </td>
                             <td class="py-3 px-3 text-center border-r border-gray-300">
                                 @php
-                                    $predikatAkhir = 'C';
-                                    if ($rataRata >= 86) $predikatAkhir = 'A';
-                                    elseif ($rataRata >= 76) $predikatAkhir = 'B';
-                                    elseif ($rataRata < 56) $predikatAkhir = 'D';
+                                    $predStyle = match($penugasan->predikat_akhir) {
+                                        'Diatas Ekspektasi' => 'background-color: #E8F5E9; color: #1B5E20; border: 1px solid #A5D6A7;',
+                                        'Sesuai Ekspektasi' => 'background-color: #E6ECF7; color: #253C6D; border: 1px solid #94A3B8;',
+                                        default => 'background-color: #FFF3D6; color: #8A5A00; border: 1px solid #FDE047;',
+                                    };
                                 @endphp
-                                <span class="px-2 py-0.5 rounded text-xs font-bold bg-green-200 text-green-900">
-                                    {{ $predikatAkhir }}
+                                <span class="px-2.5 py-0.5 rounded text-xs font-bold inline-block" style="{{ $predStyle }}">
+                                    {{ $penugasan->predikat_akhir }}
                                 </span>
                             </td>
                             <td colspan="3" class="py-3 px-3 text-xs font-medium text-gray-600">
-                                Rapor supervisi lengkap (4/4 tuntas).
+                                @if($progres['is_selesai'])
+                                    Rapor supervisi lengkap (seluruh tahapan tuntas).
+                                @else
+                                    Rata-rata dari instrumen kuantitatif yang telah berstatus final.
+                                @endif
                             </td>
                         </tr>
                     </tfoot>
                 @endif
             </table>
+        </div>
+
+        {{-- Pedoman Predikat Kinerja Supervisi --}}
+        <div class="p-3.5 rounded-lg border border-slate-200 bg-slate-50 text-xs text-slate-700 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-2">
+            <div>
+                <strong>Pedoman Predikat Kinerja Supervisi:</strong>
+                <span class="inline-block ml-1">&bull; 81 &ndash; 100: <strong class="text-emerald-800">Diatas Ekspektasi</strong></span>
+                <span class="inline-block ml-1">&bull; 51 &ndash; 80: <strong class="text-blue-900">Sesuai Ekspektasi</strong></span>
+                <span class="inline-block ml-1">&bull; 30 &ndash; 50: <strong class="text-amber-900">Dibawah Ekspektasi</strong></span>
+            </div>
+            <div class="text-gray-500">
+                *Dihitung dari rata-rata nilai instrumen kuantitatif final.
+            </div>
         </div>
 
         {{-- Keterangan / Penjelasan jika belum selesai --}}
@@ -297,23 +333,32 @@
         @endif
 
         {{-- BLOK TANDA TANGAN RESMI --}}
-        <div class="grid grid-cols-2 gap-8 pt-8 mt-4 text-xs border-t border-gray-200 text-center">
-            <div>
-                <p class="text-gray-500 mb-1">Guru yang Disupervisi,</p>
-                <div class="h-16"></div>
-                <p class="font-bold underline text-gray-900">{{ $guru->nama }}</p>
-                @if($guru->nip)
-                    <p class="text-gray-500">NIP. {{ $guru->nip }}</p>
-                @endif
+        <div class="pt-8 mt-4 border-t border-gray-200 text-xs text-center">
+            <div class="grid grid-cols-2 gap-8 mb-2">
+                <div></div>
+                <div class="text-gray-500">
+                    {{ $penugasan->sekolah->alamat ? explode(',', $penugasan->sekolah->alamat)[0] : 'Di Tempat' }}, 
+                    {{ now()->translatedFormat('d F Y') }}
+                </div>
             </div>
+            <div class="grid grid-cols-2 gap-8">
+                <div>
+                    <p class="text-gray-500 mb-1">Supervisor Penilai,</p>
+                    <div class="h-16"></div>
+                    <p class="font-bold underline text-gray-900">{{ $penugasan->penilai->nama }}</p>
+                    @if($penugasan->penilai->nip)
+                        <p class="text-gray-500">NIP. {{ $penugasan->penilai->nip }}</p>
+                    @endif
+                </div>
 
-            <div>
-                <p class="text-gray-500 mb-1">Supervisor Penilai,</p>
-                <div class="h-16"></div>
-                <p class="font-bold underline text-gray-900">{{ $penugasan->penilai->nama }}</p>
-                @if($penugasan->penilai->nip)
-                    <p class="text-gray-500">NIP. {{ $penugasan->penilai->nip }}</p>
-                @endif
+                <div>
+                    <p class="text-gray-500 mb-1">Guru yang Disupervisi,</p>
+                    <div class="h-16"></div>
+                    <p class="font-bold underline text-gray-900">{{ $guru->nama }}</p>
+                    @if($guru->nip)
+                        <p class="text-gray-500">NIP. {{ $guru->nip }}</p>
+                    @endif
+                </div>
             </div>
         </div>
     </x-card>

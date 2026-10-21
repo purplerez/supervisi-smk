@@ -263,6 +263,8 @@
         @include('pdf.instrumen.pra-observasi')
     @elseif($kodeInstrumen === 'telaah_perencanaan')
         @include('pdf.instrumen.telaah-perencanaan')
+    @elseif($kodeInstrumen === 'supervisi_perangkat')
+        @include('pdf.instrumen.supervisi-perangkat')
     @elseif($kodeInstrumen === 'observasi_pembelajaran')
         @include('pdf.instrumen.observasi-pembelajaran')
     @elseif($kodeInstrumen === 'refleksi_pasca_observasi')

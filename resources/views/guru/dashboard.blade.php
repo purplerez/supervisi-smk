@@ -82,8 +82,8 @@
     @else
         {{-- Kondisi 3: Guru Memiliki Penugasan pada Periode Aktif --}}
 
-        {{-- Kartu Ringkasan Periode & Supervisor --}}
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {{-- Kartu Ringkasan Periode, Supervisor, Progres & Nilai Akhir --}}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {{-- Informasi Periode --}}
             <x-card class="p-5 flex flex-col justify-between">
                 <div>
@@ -101,7 +101,7 @@
                     </p>
                 </div>
                 <div class="mt-4 pt-3 border-t text-xs flex items-center justify-between" style="border-color: var(--color-border); color: var(--color-muted);">
-                    <span>Rentang Pelaksanaan:</span>
+                    <span>Rentang:</span>
                     <span class="font-medium text-gray-800">
                         {{ $penugasan->periode->tanggal_mulai->format('d/m/Y') }} &ndash; {{ $penugasan->periode->tanggal_selesai->format('d/m/Y') }}
                     </span>
@@ -112,7 +112,7 @@
             <x-card class="p-5 flex flex-col justify-between">
                 <div>
                     <span class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
-                        Supervisor Anda (Penilai)
+                        Supervisor Anda
                     </span>
                     <h2 class="text-lg font-bold" style="color: var(--color-navy-900);">
                         {{ $penugasan->penilai->nama }}
@@ -141,7 +141,7 @@
                 <div>
                     <div class="flex items-center justify-between mb-1">
                         <span class="block text-xs font-bold uppercase tracking-wider text-gray-500">
-                            Ringkasan Progres
+                            Progres Supervisi
                         </span>
                         @if($progres['is_selesai'])
                             <span class="px-2 py-0.5 rounded-full text-xs font-bold" style="background-color: #E8F5E9; color: #1B5E20;">
@@ -157,7 +157,7 @@
                         {{ $progres['label'] }}
                     </div>
                     <p class="text-xs text-gray-500 mt-0.5">
-                        {{ $progres['selesai_count'] }} dari {{ $progres['total_count'] }} instrumen telah selesai dinilai.
+                        {{ $progres['selesai_count'] }} dari {{ $progres['total_count'] }} instrumen selesai.
                     </p>
                 </div>
 
@@ -169,6 +169,55 @@
                             style="width: {{ $progres['persentase'] }}%; background-color: var(--color-orange-500);"
                         ></div>
                     </div>
+                </div>
+            </x-card>
+
+            {{-- Nilai Akhir & Predikat Supervisi --}}
+            <x-card class="p-5 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="block text-xs font-bold uppercase tracking-wider text-gray-500">
+                            Nilai Akhir
+                        </span>
+                        @if($penugasan->predikat_akhir)
+                            @php
+                                $predBadge = match($penugasan->predikat_akhir) {
+                                    'Diatas Ekspektasi' => 'background-color: #E8F5E9; color: #1B5E20; border-color: #A5D6A7;',
+                                    'Sesuai Ekspektasi' => 'background-color: #E6ECF7; color: #253C6D; border-color: #94A3B8;',
+                                    default => 'background-color: #FFF3D6; color: #8A5A00; border-color: #FDE047;',
+                                };
+                            @endphp
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold border" style="{{ $predBadge }}">
+                                {{ $penugasan->predikat_akhir }}
+                            </span>
+                        @else
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-600">
+                                Belum dinilai
+                            </span>
+                        @endif
+                    </div>
+                    @if($penugasan->nilai_akhir !== null)
+                        <div class="text-2xl font-bold mt-1 text-emerald-700">
+                            {{ number_format($penugasan->nilai_akhir, 2, ',', '.') }}
+                        </div>
+                        <p class="text-xs text-gray-600 mt-0.5">
+                            Predikat: <strong class="text-gray-900">{{ $penugasan->predikat_akhir }}</strong>
+                        </p>
+                    @else
+                        <div class="text-2xl font-bold mt-1 text-gray-400">
+                            &mdash;
+                        </div>
+                        <p class="text-xs text-gray-500 mt-0.5">
+                            Menunggu instrumen kuantitatif final.
+                        </p>
+                    @endif
+                </div>
+
+                <div class="mt-4 pt-3 border-t text-xs flex items-center justify-between" style="border-color: var(--color-border);">
+                    <span class="text-gray-500">Rata-rata kuantitatif</span>
+                    <a href="{{ route('guru.rapor', ['kode' => $sekolah->kode, 'periode' => $penugasan->periode_id]) }}" class="font-bold text-navy-700 hover:text-navy-900 hover:underline">
+                        Lihat Rapor &rarr;
+                    </a>
                 </div>
             </x-card>
         </div>
@@ -218,168 +267,231 @@
                 </span>
             </div>
 
-            {{-- Daftar Baris Timeline --}}
+            {{-- Daftar Baris Timeline 5 Tahap Supervisi Resmi --}}
             <div class="space-y-6">
                 @php
-                    $urutanInstrumen = [
-                        'pra_observasi' => ['no' => 1, 'judul' => 'Percakapan Pra-Observasi', 'deskripsi' => 'Dialog awal menyepakati tujuan pembelajaran, fokus perilaku amatan, dan strategi pembelajaran.'],
-                        'telaah_perencanaan' => ['no' => 2, 'judul' => 'Telaah Perencanaan Pembelajaran', 'deskripsi' => 'Penelaahan keselarasan modul ajar/RPP, kerangka, langkah kegiatan, dan asesmen pembelajaran.'],
-                        'observasi_pembelajaran' => ['no' => 3, 'judul' => 'Observasi Pelaksanaan Pembelajaran', 'deskripsi' => 'Pengamatan langsung proses belajar mengajar tatap muka di dalam kelas berpusat pada murid.'],
-                        'refleksi_pasca_observasi' => ['no' => 4, 'judul' => 'Refleksi Pasca Pembelajaran', 'deskripsi' => 'Percakapan pasca-observasi, reviu amatan kelas, evaluasi tantangan, dan praktik baik.'],
-                        'rencana_pengembangan_diri' => ['no' => 5, 'judul' => 'Rencana Pengembangan Diri Guru', 'deskripsi' => 'Penyusunan rencana aksi komitmen pengembangan keprofesian berkelanjutan guru.'],
+                    $tahapanSupervisi = [
+                        [
+                            'no' => 1,
+                            'judul' => 'Percakapan Pra-Observasi',
+                            'deskripsi' => 'Dialog awal menyepakati tujuan pembelajaran, fokus perilaku amatan, dan strategi pembelajaran.',
+                            'items' => [
+                                ['kode' => 'pra_observasi', 'label' => 'Lembar Catatan Percakapan Pra-Observasi', 'sub' => '1']
+                            ],
+                        ],
+                        [
+                            'no' => 2,
+                            'judul' => 'Dokumen Perencanaan Pembelajaran',
+                            'deskripsi' => 'Penelaahan keselarasan dokumen modul ajar/RPP serta supervisi kelengkapan perangkat pembelajaran mendalam 2026.',
+                            'items' => [
+                                ['kode' => 'telaah_perencanaan', 'label' => 'Instrumen Telaah Perangkat Pembelajaran', 'sub' => '2.1'],
+                                ['kode' => 'supervisi_perangkat', 'label' => 'Instrumen Supervisi Perangkat Pembelajaran Mendalam 2026', 'sub' => '2.2'],
+                            ],
+                        ],
+                        [
+                            'no' => 3,
+                            'judul' => 'Observasi Pelaksanaan Pembelajaran',
+                            'deskripsi' => 'Pengamatan langsung proses belajar mengajar tatap muka di dalam kelas berpusat pada murid.',
+                            'items' => [
+                                ['kode' => 'observasi_pembelajaran', 'label' => 'Instrumen Observasi Pelaksanaan Pembelajaran', 'sub' => '3']
+                            ],
+                        ],
+                        [
+                            'no' => 4,
+                            'judul' => 'Refleksi Pasca Pembelajaran',
+                            'deskripsi' => 'Percakapan pasca-observasi, reviu amatan kelas, evaluasi tantangan, dan praktik baik.',
+                            'items' => [
+                                ['kode' => 'refleksi_pasca_observasi', 'label' => 'Instrumen Refleksi Pasca Pembelajaran', 'sub' => '4']
+                            ],
+                        ],
+                        [
+                            'no' => 5,
+                            'judul' => 'Rencana Pengembangan Diri Guru',
+                            'deskripsi' => 'Penyusunan rencana aksi komitmen pengembangan keprofesian berkelanjutan guru.',
+                            'items' => [
+                                ['kode' => 'rencana_pengembangan_diri', 'label' => 'Lembar Rencana Pengembangan Diri Guru', 'sub' => '5']
+                            ],
+                        ],
                     ];
                 @endphp
 
-                @foreach($urutanInstrumen as $kodeInstrumen => $meta)
+                @foreach($tahapanSupervisi as $tahap)
                     @php
-                        $penilaianItem = $penugasan->penilaian->firstWhere('jenisInstrumen.kode', $kodeInstrumen);
-                        $status = $penilaianItem?->status ?? 'belum';
-                        $jadwalItem = $penugasan->jadwalSupervisi->firstWhere('jenisInstrumen.kode', $kodeInstrumen);
-                        $isTerkunci = $penilaianItem ? $penilaianItem->isTerkunciPrasyarat() : false;
-                        $tahapPrasyarat = $penilaianItem ? $penilaianItem->tahapPrasyarat() : null;
-                        $isDiisiGuru = $penilaianItem ? $penilaianItem->isDiisiMandiriGuru() : false;
-                        $guruSudahKirim = $penilaianItem ? $penilaianItem->isGuruSudahSubmit() : false;
+                        $penilaianTahap = collect($tahap['items'])->map(function($it) use ($penugasan) {
+                            return [
+                                'meta' => $it,
+                                'penilaian' => $penugasan->penilaian->firstWhere('jenisInstrumen.kode', $it['kode']),
+                                'jadwal' => $penugasan->jadwalSupervisi->firstWhere('jenisInstrumen.kode', $it['kode']),
+                            ];
+                        });
+                        $semuaFinal = $penilaianTahap->every(fn($p) => $p['penilaian'] && $p['penilaian']->isFinal());
+                        $adaTerkunci = $penilaianTahap->contains(fn($p) => $p['penilaian'] ? $p['penilaian']->isTerkunciPrasyarat() : false);
                     @endphp
 
-                    <div class="p-5 rounded-2xl border {{ $isTerkunci ? 'bg-slate-50/60 border-slate-200 opacity-90' : 'bg-white border-slate-100 hover:border-slate-300 shadow-xs' }} transition-all duration-150">
-                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            {{-- Sisi Kiri: Nomor Tahap, Judul, dan Deskripsi --}}
-                            <div class="flex items-start gap-4">
-                                <div
-                                    class="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-base shrink-0 shadow-2xs"
-                                    style="
-                                        @if($status === 'final')
-                                            background-color: #E8F5E9; color: #1B5E20; border: 1.5px solid #A5D6A7;
-                                        @elseif($isTerkunci)
-                                            background-color: #F1F5F9; color: #94A3B8; border: 1.5px solid #CBD5E1;
-                                        @elseif($status === 'draft')
-                                            background-color: #FFF3D6; color: #8A5A00; border: 1.5px solid #FFE082;
-                                        @elseif($status === 'direvisi')
-                                            background-color: #FDE8D4; color: #8A3B00; border: 1.5px solid #FFCCBC;
-                                        @else
-                                            background-color: #EEF0F4; color: #4B5563; border: 1.5px solid #E2E8F0;
-                                        @endif
-                                    "
-                                >
-                                    @if($status === 'final')
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                        </svg>
-                                    @elseif($isTerkunci)
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                        </svg>
+                    <div class="p-5 rounded-2xl border {{ $semuaFinal ? 'bg-white border-emerald-200 shadow-xs' : ($adaTerkunci ? 'bg-slate-50/60 border-slate-200 opacity-90' : 'bg-white border-slate-100 hover:border-slate-300 shadow-xs') }} transition-all duration-150">
+                        {{-- Header Tahap --}}
+                        <div class="flex items-start gap-4 mb-3">
+                            <div
+                                class="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-base shrink-0 shadow-2xs"
+                                style="
+                                    @if($semuaFinal)
+                                        background-color: #E8F5E9; color: #1B5E20; border: 1.5px solid #A5D6A7;
+                                    @elseif($adaTerkunci)
+                                        background-color: #F1F5F9; color: #94A3B8; border: 1.5px solid #CBD5E1;
                                     @else
-                                        {{ $meta['no'] }}
+                                        background-color: #EEF0F4; color: #253C6D; border: 1.5px solid #CBD5E1;
                                     @endif
-                                </div>
-
-                                <div>
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <h3 class="text-base font-bold {{ $isTerkunci ? 'text-slate-500' : 'text-navy-900' }}">
-                                            {{ $meta['judul'] }}
-                                        </h3>
-
-                                        {{-- Badge Status Supervisi (Sesuai AGENTS.md: Belum dinilai / Sedang dinilai / Sedang direvisi / Final) --}}
-                                        @if($status === 'final')
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-                                                Final
-                                            </span>
-                                        @elseif($status === 'direvisi')
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
-                                                Sedang direvisi
-                                            </span>
-                                        @elseif($status === 'draft')
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-                                                Sedang dinilai @if($isDiisiGuru && $guruSudahKirim) (Terkirim) @endif
-                                            </span>
-                                        @elseif($isTerkunci)
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-200 text-slate-700">
-                                                <svg class="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                                                Terkunci (Selesaikan Tahap {{ $tahapPrasyarat?->nomor_tahap ?? ($meta['no'] - 1) }} Dahulu)
-                                            </span>
-                                        @else
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
-                                                Belum dinilai
-                                            </span>
-                                        @endif
-                                    </div>
-                                    <p class="text-xs text-gray-500 mt-1">
-                                        {{ $meta['deskripsi'] }}
-                                    </p>
-
-                                    {{-- Jadwal Observasi jika ada --}}
-                                    @if($jadwalItem && $jadwalItem->tanggal)
-                                        <div class="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50/60 text-blue-900 border border-blue-100">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
-                                            </svg>
-                                            Jadwal: {{ $jadwalItem->tanggal->locale('id')->isoFormat('dddd, D MMMM Y') }}
-                                            ({{ substr($jadwalItem->jam_mulai, 0, 5) }} &ndash; {{ substr($jadwalItem->jam_selesai, 0, 5) }} WIB)
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-
-                            {{-- Sisi Kanan: Tombol Aksi / Nilai --}}
-                            <div class="md:text-right shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-gray-100 flex flex-col md:items-end justify-center gap-2">
-                                @if($status === 'final')
-                                    <div class="flex md:flex-col items-center md:items-end justify-between gap-2">
-                                        @if($penilaianItem->isKuantitatif())
-                                            <div class="flex items-baseline gap-1.5">
-                                                <span class="text-xs font-semibold text-gray-500">Nilai:</span>
-                                                <span class="text-2xl font-bold text-green-700">
-                                                    {{ number_format($penilaianItem->nilai, 2, ',', '.') }}
-                                                </span>
-                                            </div>
-                                            <div class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold" style="background-color: var(--color-navy-50); color: var(--color-navy-900);">
-                                                Predikat: {{ $penilaianItem->predikat ?? '-' }}
-                                            </div>
-                                        @else
-                                            <div class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800">
-                                                Terlaksana & Selesai
-                                            </div>
-                                        @endif
-                                    </div>
-                                    <div class="mt-1 flex items-center md:justify-end gap-3">
-                                        @if($isDiisiGuru)
-                                            <a href="{{ route('guru.penilaian.show', ['kode' => $sekolah->kode, 'penilaian' => $penilaianItem]) }}"
-                                               class="text-xs font-semibold text-navy-700 hover:text-navy-900 hover:underline">
-                                                Lihat Dokumen
-                                            </a>
-                                        @endif
-                                        <a href="{{ route('penilaian.cetak-pdf', ['kode' => $sekolah->kode, 'penilaian' => $penilaianItem]) }}"
-                                           target="_blank"
-                                           class="inline-flex items-center gap-1.5 text-xs font-semibold text-navy-900 hover:text-navy-700 underline focus:ring-2 focus:ring-orange-500 focus:outline-none rounded">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm2 10a1 1 0 10-2 0v3a1 1 0 102 0v-3zm2-3a1 1 0 011 1v5a1 1 0 11-2 0v-5a1 1 0 011-1zm4 4a1 1 0 10-2 0v2a1 1 0 102 0v-2z" clip-rule="evenodd" />
-                                            </svg>
-                                            Cetak PDF
-                                        </a>
-                                    </div>
-                                @elseif($isTerkunci)
-                                    <span class="text-xs font-medium text-slate-400 italic block">
-                                        Terkunci oleh prasyarat
-                                    </span>
-                                @elseif($isDiisiGuru)
-                                    {{-- Tombol Pengisian Mandiri untuk Guru --}}
-                                    <a href="{{ route('guru.penilaian.show', ['kode' => $sekolah->kode, 'penilaian' => $penilaianItem]) }}"
-                                       class="px-4 py-2 rounded-xl text-xs font-bold text-white transition min-h-[38px] flex items-center gap-1.5 shadow-xs
-                                              {{ $guruSudahKirim ? 'bg-navy-900 hover:bg-navy-800' : 'bg-[#2E7D32] hover:bg-[#256628]' }}">
-                                        @if($guruSudahKirim)
-                                            <span>Lihat / Perbarui Isian</span>
-                                        @elseif($status === 'draft')
-                                            <span>Lanjutkan Isi Draf &rarr;</span>
-                                        @else
-                                            <span>Isi Lembar Ini &rarr;</span>
-                                        @endif
-                                    </a>
+                                "
+                            >
+                                @if($semuaFinal)
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                    </svg>
+                                @elseif($adaTerkunci && ! $penilaianTahap->contains(fn($p) => $p['penilaian'] && ! $p['penilaian']->isTerkunciPrasyarat()))
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
                                 @else
-                                    <span class="text-xs font-medium text-amber-700 italic block">
-                                        Dinilai langsung oleh Supervisor saat observasi
-                                    </span>
+                                    {{ $tahap['no'] }}
                                 @endif
                             </div>
+
+                            <div class="flex-1">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <h3 class="text-base font-bold text-navy-900">
+                                        Tahap {{ $tahap['no'] }}: {{ $tahap['judul'] }}
+                                    </h3>
+                                    @if(count($tahap['items']) > 1)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-navy-50 text-navy-900 border border-navy-200">
+                                            2 Instrumen Penilaian
+                                        </span>
+                                    @endif
+                                </div>
+                                <p class="text-xs text-gray-500 mt-0.5">
+                                    {{ $tahap['deskripsi'] }}
+                                </p>
+                            </div>
+                        </div>
+
+                        {{-- Rincian Instrumen dalam Tahap ini --}}
+                        <div class="space-y-3 {{ count($tahap['items']) > 1 ? 'mt-4 pt-4 border-t border-slate-100' : '' }}">
+                            @foreach($penilaianTahap as $pData)
+                                @php
+                                    $penilaianItem = $pData['penilaian'];
+                                    $jadwalItem = $pData['jadwal'];
+                                    $metaItem = $pData['meta'];
+                                    $status = $penilaianItem?->status ?? 'belum';
+                                    $isTerkunci = $penilaianItem ? $penilaianItem->isTerkunciPrasyarat() : false;
+                                    $tahapPrasyarat = $penilaianItem ? $penilaianItem->tahapPrasyarat() : null;
+                                    $isDiisiGuru = $penilaianItem ? $penilaianItem->isDiisiMandiriGuru() : false;
+                                    $guruSudahKirim = $penilaianItem ? $penilaianItem->isGuruSudahSubmit() : false;
+                                @endphp
+
+                                <div class="p-3.5 rounded-xl border {{ $penilaianItem?->isFinal() ? 'bg-emerald-50/40 border-emerald-200' : ($isTerkunci ? 'bg-slate-50 border-slate-200' : 'bg-neutral-50/70 border-neutral-200') }} flex flex-col md:flex-row md:items-center justify-between gap-3">
+                                    {{-- Info Instrumen --}}
+                                    <div class="flex-1">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <span class="text-xs font-bold text-navy-900">
+                                                {{ $metaItem['label'] }}
+                                            </span>
+
+                                            {{-- Badge Status --}}
+                                            @if($status === 'final')
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                                                    Final
+                                                </span>
+                                            @elseif($status === 'direvisi')
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
+                                                    Sedang direvisi
+                                                </span>
+                                            @elseif($status === 'draft')
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                                                    Sedang dinilai @if($isDiisiGuru && $guruSudahKirim) (Terkirim) @endif
+                                                </span>
+                                            @elseif($isTerkunci)
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-200 text-slate-700">
+                                                    <svg class="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                                                    Terkunci (Selesaikan instrumen sebelumnya)
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
+                                                    Belum dinilai
+                                                </span>
+                                            @endif
+                                        </div>
+
+                                        {{-- Jadwal Observasi jika ada --}}
+                                        @if($jadwalItem && $jadwalItem->tanggal)
+                                            <div class="inline-flex items-center gap-1.5 mt-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-blue-50/70 text-blue-900 border border-blue-100">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                                                </svg>
+                                                Jadwal: {{ $jadwalItem->tanggal->locale('id')->isoFormat('dddd, D MMMM Y') }}
+                                                ({{ substr($jadwalItem->jam_mulai, 0, 5) }} &ndash; {{ substr($jadwalItem->jam_selesai, 0, 5) }} WIB)
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    {{-- Aksi / Skor --}}
+                                    <div class="md:text-right shrink-0 flex flex-col md:items-end justify-center gap-1.5">
+                                        @if($status === 'final')
+                                            <div class="flex items-center md:justify-end gap-2">
+                                                @if($penilaianItem->isKuantitatif())
+                                                    <div class="flex items-baseline gap-1">
+                                                        <span class="text-xs font-semibold text-gray-500">Nilai:</span>
+                                                        <span class="text-xl font-bold text-green-700">
+                                                            {{ number_format($penilaianItem->nilai, 2, ',', '.') }}
+                                                        </span>
+                                                    </div>
+                                                    <div class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-navy-50 text-navy-900 border border-navy-200">
+                                                        Predikat: {{ $penilaianItem->predikat ?? '-' }}
+                                                    </div>
+                                                @else
+                                                    <div class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800">
+                                                        Selesai
+                                                    </div>
+                                                @endif
+                                            </div>
+                                            <div class="flex items-center md:justify-end gap-2.5">
+                                                @if($isDiisiGuru)
+                                                    <a href="{{ route('guru.penilaian.show', ['kode' => $sekolah->kode, 'penilaian' => $penilaianItem]) }}"
+                                                       class="text-xs font-semibold text-navy-700 hover:text-navy-900 hover:underline">
+                                                        Lihat Isian
+                                                    </a>
+                                                @endif
+                                                <a href="{{ route('penilaian.cetak-pdf', ['kode' => $sekolah->kode, 'penilaian' => $penilaianItem]) }}"
+                                                   target="_blank"
+                                                   class="inline-flex items-center gap-1 text-xs font-semibold text-navy-900 hover:text-navy-700 underline focus:ring-2 focus:ring-orange-500 rounded">
+                                                    <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm2 10a1 1 0 10-2 0v3a1 1 0 102 0v-3zm2-3a1 1 0 011 1v5a1 1 0 11-2 0v-5a1 1 0 011-1zm4 4a1 1 0 10-2 0v2a1 1 0 102 0v-2z" clip-rule="evenodd" />
+                                                    </svg>
+                                                    Cetak PDF
+                                                </a>
+                                            </div>
+                                        @elseif($isTerkunci)
+                                            <span class="text-xs font-medium text-slate-400 italic block">
+                                                Terkunci oleh prasyarat
+                                            </span>
+                                        @elseif($isDiisiGuru)
+                                            <a href="{{ route('guru.penilaian.show', ['kode' => $sekolah->kode, 'penilaian' => $penilaianItem]) }}"
+                                               class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white transition min-h-[36px] flex items-center gap-1.5 shadow-xs
+                                                      {{ $guruSudahKirim ? 'bg-navy-900 hover:bg-navy-800' : 'bg-[#2E7D32] hover:bg-[#256628]' }}">
+                                                @if($guruSudahKirim)
+                                                    <span>Lihat / Perbarui Isian</span>
+                                                @elseif($status === 'draft')
+                                                    <span>Lanjutkan Isi Draf &rarr;</span>
+                                                @else
+                                                    <span>Isi Lembar Ini &rarr;</span>
+                                                @endif
+                                            </a>
+                                        @else
+                                            <span class="text-xs font-medium text-amber-700 italic block">
+                                                Dinilai langsung oleh Supervisor
+                                            </span>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
                         </div>
                     </div>
                 @endforeach

@@ -389,6 +389,12 @@
     {{-- TANDA TANGAN --}}
     <table class="ttd-table">
         <tr>
+            <td></td>
+            <td>
+                {{ $sekolah->alamat ? explode(',', $sekolah->alamat)[0] : 'Di Tempat' }}, {{ now()->translatedFormat('d F Y') }}
+            </td>
+        </tr>
+        <tr>
             <td>
                 Mengetahui,<br>
                 Kepala Sekolah
@@ -397,7 +403,6 @@
                 <div>NIP: {{ $sekolah->kepalaSekolah?->nip ?: '..........................................' }}</div>
             </td>
             <td>
-                {{ $sekolah->alamat ? explode(',', $sekolah->alamat)[0] : 'Di Tempat' }}, {{ now()->translatedFormat('d F Y') }}<br>
                 {{ $supervisor ? 'Supervisor Penilai' : 'Koordinator Supervisi' }}
                 <div class="ttd-space"></div>
                 <div class="ttd-nama">{{ $supervisor ? $supervisor->nama : auth()->user()->nama }}</div>

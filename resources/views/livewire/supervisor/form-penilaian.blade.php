@@ -50,25 +50,32 @@
                 </p>
             </div>
 
-            {{-- Indikator Kelengkapan Butir --}}
+            {{-- Indikator Kelengkapan Butir & Nilai --}}
             <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-navy-50/70 p-4 rounded-xl border border-navy-100">
                 @if ($penilaian->isKuantitatif())
                     <div class="text-right sm:text-left">
                         <p class="text-xs text-muted uppercase font-semibold">Kelengkapan Skor</p>
-                        <p class="text-xl font-bold text-navy-900">{{ $this->jumlahTerisi }} <span class="text-sm font-normal text-muted">/ {{ $this->totalButir }} terisi</span></p>
+                        <p class="text-xl font-bold text-navy-900">{{ $this->jumlahTerisi }} <span class="text-sm font-normal text-muted">/ {{ $this->totalButir }} butir</span></p>
                     </div>
-                    <div class="w-32 bg-neutral-200 rounded-full h-3">
+                    <div class="w-28 bg-neutral-200 rounded-full h-3">
                         @php
                             $persen = $this->totalButir > 0 ? round(($this->jumlahTerisi / $this->totalButir) * 100) : 0;
                         @endphp
                         <div class="bg-orange-500 h-3 rounded-full transition-all duration-300" style="width: {{ $persen }}%"></div>
                     </div>
-                    @if ($penilaian->isFinal())
-                        <div class="border-l border-neutral-300 pl-4">
-                            <p class="text-xs text-muted uppercase font-semibold">Nilai Akhir</p>
-                            <p class="text-xl font-bold text-emerald-700">{{ number_format($penilaian->nilai, 2) }} <span class="text-base font-semibold">({{ $penilaian->predikat }})</span></p>
-                        </div>
-                    @endif
+                    <div class="border-l border-neutral-300 pl-4">
+                        @if ($penilaian->isFinal())
+                            <p class="text-xs text-muted uppercase font-semibold">Skor: {{ $penilaian->total_skor }} / {{ $penilaian->skor_maks }}</p>
+                            <p class="text-xl font-bold text-emerald-700">{{ number_format($penilaian->nilai, 2) }} <span class="text-sm font-semibold">({{ $penilaian->predikat }})</span></p>
+                        @else
+                            <p class="text-xs text-muted font-medium">Skor: <strong class="text-navy-900">{{ $this->skorPerolehan }}</strong> / {{ $this->skorMaksimal }}</p>
+                            <p class="text-lg font-bold text-navy-900">
+                                {{ number_format($this->nilaiAkhirHitungan, 2) }}
+                                <span class="text-xs font-semibold text-muted">({{ $this->estimasiPredikat }})</span>
+                            </p>
+                            <p class="text-[11px] text-muted">Rumus: (Skor / Maks) &times; 100</p>
+                        @endif
+                    </div>
                 @else
                     <div>
                         <p class="text-xs text-muted uppercase font-semibold">Kelengkapan Isian</p>
@@ -109,14 +116,14 @@
                         </div>
                     </div>
                 @else
-                    <div class="mt-4 p-3.5 rounded-xl bg-sky-50 border border-sky-200 flex items-start gap-3">
-                        <div class="w-7 h-7 rounded-full bg-sky-200 text-sky-900 flex items-center justify-center shrink-0 mt-0.5 font-bold text-sm">
+                    <div class="mt-4 p-4 rounded-xl bg-sky-50 border border-sky-200 flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-full bg-sky-200 text-sky-900 flex items-center justify-center shrink-0 mt-0.5 font-bold text-sm">
                             ℹ️
                         </div>
                         <div class="text-[14px] text-sky-950">
-                            <p class="font-semibold text-sky-900">Menunggu Penyerahan Mandiri Guru</p>
+                            <p class="font-bold text-sky-900">Menunggu Penyerahan Isian Mandiri oleh Guru</p>
                             <p class="mt-0.5 text-sky-800">
-                                Guru belum mengirimkan lembar ini melalui dasbor guru. Anda dapat menunggu guru atau melengkapinya bersama saat supervisi dialogis.
+                                Lembar ini diisi secara mandiri oleh Guru yang disupervisi (<strong>{{ $penilaian->penugasan->guru->nama }}</strong>). Supervisor baru dapat memberikan rekomendasi supervisi dan memfinalisasi setelah Guru menyelesaikan serta menyerahkan isian mandirinya.
                             </p>
                         </div>
                     </div>
@@ -135,24 +142,25 @@
 
     {{-- KONTEN FORM SPESIFIK BERDASARKAN JENIS INSTRUMEN --}}
 
-    {{-- 1. Form Khusus Rencana Pengembangan Diri (Matriks Tabel Dinamis) --}}
+    {{-- 1. Tampilan Khusus Rencana Pengembangan Diri (Read-Only Isian Guru) --}}
     @if ($penilaian->jenisInstrumen?->kode === 'rencana_pengembangan_diri')
         <div class="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 space-y-5">
-            <div class="flex items-center justify-between border-b border-neutral-100 pb-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-neutral-100 pb-4 gap-2">
                 <div>
-                    <h3 class="font-bold text-navy-900 text-lg">Matriks Rencana Pengembangan Diri Guru</h3>
-                    <p class="text-sm text-muted">Komitmen rencana aksi peningkatan kompetensi pasca-supervisi.</p>
-                </div>
-                @if (! $penilaian->isFinal())
-                    <button type="button" 
-                            wire:click="tambahBarisRencana"
-                            class="px-4 py-2 rounded-lg font-semibold text-sm text-navy-900 bg-navy-50 hover:bg-navy-100 border border-navy-200 transition min-h-[44px] flex items-center gap-1.5">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    <h3 class="font-bold text-navy-900 text-lg flex items-center gap-2">
+                        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                         </svg>
-                        Tambah Baris Aktivitas
-                    </button>
-                @endif
+                        <span>Matriks Rencana Pengembangan Diri Guru</span>
+                    </h3>
+                    <p class="text-sm text-muted mt-0.5">Komitmen rencana aksi peningkatan kompetensi yang disusun secara mandiri oleh Guru.</p>
+                </div>
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 self-start sm:self-auto flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                    </svg>
+                    <span>Diisi Mandiri oleh Guru</span>
+                </span>
             </div>
 
             <div class="overflow-x-auto">
@@ -165,10 +173,7 @@
                             <th class="p-3 border border-neutral-200">Ukuran Keberhasilan</th>
                             <th class="p-3 border border-neutral-200">Dukungan Dibutuhkan</th>
                             <th class="p-3 border border-neutral-200 w-28">Target Waktu</th>
-                            <th class="p-3 border border-neutral-200 w-28">Status</th>
-                            @if (! $penilaian->isFinal())
-                                <th class="p-3 border border-neutral-200 w-14 text-center">Aksi</th>
-                            @endif
+                            <th class="p-3 border border-neutral-200 w-28 text-center">Status</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-neutral-200 text-sm">
@@ -177,67 +182,39 @@
                                 <td class="p-3 border border-neutral-200 text-center font-bold text-navy-900 align-top">
                                     {{ $idx + 1 }}
                                 </td>
-                                <td class="p-2 border border-neutral-200 align-top">
-                                    <textarea wire:model.blur="dataKualitatif.rencana.{{ $idx }}.aktivitas"
-                                              rows="2"
-                                              {{ $penilaian->isFinal() ? 'disabled' : '' }}
-                                              placeholder="Mis. Pelatihan Mandiri PMM Topik Diferensiasi..."
-                                              class="w-full text-sm border-neutral-300 rounded-lg p-2 focus:ring focus:ring-orange-500/20"></textarea>
+                                <td class="p-3 border border-neutral-200 align-top">
+                                    <p class="whitespace-pre-line text-ink font-medium leading-relaxed">{{ $baris['aktivitas'] ?: '-' }}</p>
                                 </td>
-                                <td class="p-2 border border-neutral-200 align-top">
-                                    <textarea wire:model.blur="dataKualitatif.rencana.{{ $idx }}.tujuan"
-                                              rows="2"
-                                              {{ $penilaian->isFinal() ? 'disabled' : '' }}
-                                              placeholder="Peningkatan kemampuan merancang modul..."
-                                              class="w-full text-sm border-neutral-300 rounded-lg p-2 focus:ring focus:ring-orange-500/20"></textarea>
+                                <td class="p-3 border border-neutral-200 align-top">
+                                    <p class="whitespace-pre-line text-ink leading-relaxed">{{ $baris['tujuan'] ?: '-' }}</p>
                                 </td>
-                                <td class="p-2 border border-neutral-200 align-top">
-                                    <textarea wire:model.blur="dataKualitatif.rencana.{{ $idx }}.ukuran"
-                                              rows="2"
-                                              {{ $penilaian->isFinal() ? 'disabled' : '' }}
-                                              placeholder="Tersedianya modul ajar berdiferensiasi..."
-                                              class="w-full text-sm border-neutral-300 rounded-lg p-2 focus:ring focus:ring-orange-500/20"></textarea>
+                                <td class="p-3 border border-neutral-200 align-top">
+                                    <p class="whitespace-pre-line text-ink leading-relaxed">{{ $baris['ukuran'] ?: '-' }}</p>
                                 </td>
-                                <td class="p-2 border border-neutral-200 align-top">
-                                    <textarea wire:model.blur="dataKualitatif.rencana.{{ $idx }}.dukungan"
-                                              rows="2"
-                                              {{ $penilaian->isFinal() ? 'disabled' : '' }}
-                                              placeholder="Diskusi rekan Kombel & bimbingan Kepsek..."
-                                              class="w-full text-sm border-neutral-300 rounded-lg p-2 focus:ring focus:ring-orange-500/20"></textarea>
+                                <td class="p-3 border border-neutral-200 align-top">
+                                    <p class="whitespace-pre-line text-ink leading-relaxed">{{ $baris['dukungan'] ?: '-' }}</p>
                                 </td>
-                                <td class="p-2 border border-neutral-200 align-top">
-                                    <input type="text"
-                                           wire:model.blur="dataKualitatif.rencana.{{ $idx }}.waktu"
-                                           {{ $penilaian->isFinal() ? 'disabled' : '' }}
-                                           placeholder="1 Bulan / Okt 2026"
-                                           class="w-full text-sm border-neutral-300 rounded-lg p-2 focus:ring focus:ring-orange-500/20">
+                                <td class="p-3 border border-neutral-200 align-top">
+                                    <span class="font-medium text-navy-900">{{ $baris['waktu'] ?: '-' }}</span>
                                 </td>
-                                <td class="p-2 border border-neutral-200 align-top">
-                                    <select wire:model="dataKualitatif.rencana.{{ $idx }}.status"
-                                            {{ $penilaian->isFinal() ? 'disabled' : '' }}
-                                            class="w-full text-xs font-semibold border-neutral-300 rounded-lg p-2 focus:ring focus:ring-orange-500/20">
-                                        <option value="Rencana">Rencana</option>
-                                        <option value="Sedang Berjalan">Berjalan</option>
-                                        <option value="Tercapai">Tercapai</option>
-                                    </select>
+                                <td class="p-3 border border-neutral-200 align-top text-center">
+                                    @php
+                                        $st = $baris['status'] ?? 'Rencana';
+                                        $statusBadge = match($st) {
+                                            'Tercapai' => 'bg-emerald-100 text-emerald-800 border-emerald-200',
+                                            'Sedang Berjalan' => 'bg-amber-100 text-amber-800 border-amber-200',
+                                            default => 'bg-neutral-100 text-neutral-700 border-neutral-200',
+                                        };
+                                    @endphp
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border {{ $statusBadge }}">
+                                        {{ $st }}
+                                    </span>
                                 </td>
-                                @if (! $penilaian->isFinal())
-                                    <td class="p-2 border border-neutral-200 text-center align-top">
-                                        <button type="button" 
-                                                wire:click="hapusBarisRencana({{ $idx }})"
-                                                class="p-2 rounded-lg text-rose-600 hover:bg-rose-50 transition"
-                                                title="Hapus Baris">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                        </button>
-                                    </td>
-                                @endif
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ $penilaian->isFinal() ? 7 : 8 }}" class="p-6 text-center text-muted">
-                                    Belum ada baris rencana aktivitas. Klik tombol "Tambah Baris Aktivitas" di atas.
+                                <td colspan="7" class="p-8 text-center text-muted italic">
+                                    Guru belum menyusun atau menyerahkan matriks rencana pengembangan diri.
                                 </td>
                             </tr>
                         @endforelse
@@ -320,41 +297,82 @@
                                                 @endif
                                             </div>
 
-                                            {{-- A. JIKA INSTRUMEN KUANTITATIF (Skala 0-4) --}}
-                                            @if ($penilaian->isKuantitatif())
+                                            {{-- Penentuan Tipe Butir: Kuantitatif (Skor) atau Kualitatif (Catatan) --}}
+                                            @php
+                                                $isBagianKualitatif = ($bagian->kategori === 'Kualitatif') || str_contains(strtolower($bagian->judul), 'catatan') || str_contains(strtolower($bagian->judul), 'rekomendasi');
+                                                $isButirKuantitatif = $penilaian->isKuantitatif() && ! $isBagianKualitatif && (int) ($butir->skor_maks ?? 0) > 0;
+                                            @endphp
+
+                                            {{-- A. JIKA BUTIR KUANTITATIF (Skala 0-2 atau 0-4) --}}
+                                            @if ($isButirKuantitatif)
+                                                @php
+                                                    $skorMaksButir = (int) ($butir->skor_maks ?: ($penilaian->versiInstrumen?->skor_maks_butir ?: 4));
+                                                @endphp
                                                 <div>
-                                                    <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-2">
-                                                        Skala Penilaian (0: Tidak Ada, 1: Sangat Kurang, 2: Kurang, 3: Baik, 4: Sangat Baik):
-                                                    </label>
-                                                    @php
-                                                        $labelSkorList = [
-                                                            0 => 'Tidak Ada',
-                                                            1 => 'Sangat Kurang',
-                                                            2 => 'Kurang',
-                                                            3 => 'Baik',
-                                                            4 => 'Sangat Baik',
-                                                        ];
-                                                    @endphp
-                                                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                                                        @for ($s = 0; $s <= 4; $s++)
-                                                            @php
-                                                                $isSelected = isset($skor[$butir->id]) && (int)$skor[$butir->id] === $s && $skor[$butir->id] !== null && $skor[$butir->id] !== '';
-                                                            @endphp
-                                                            <button
-                                                                type="button"
-                                                                wire:key="butir-{{ $butir->id }}-skor-{{ $s }}"
-                                                                @if(! $penilaian->isFinal()) wire:click="setSkor({{ $butir->id }}, {{ $s }})" @endif
-                                                                class="relative flex flex-col items-center justify-center p-2.5 rounded-xl border min-h-[52px] select-none transition w-full {{ $isSelected ? 'bg-navy-900 border-navy-900 text-white font-bold ring-2 ring-orange-500 ring-offset-2 shadow' : 'bg-white border-neutral-300 text-ink hover:bg-navy-50 hover:border-navy-400' }} {{ $penilaian->isFinal() ? 'cursor-not-allowed opacity-80' : 'cursor-pointer' }}"
-                                                                {{ $penilaian->isFinal() ? 'disabled' : '' }}
-                                                                aria-label="Skor {{ $s }} - {{ $labelSkorList[$s] }}"
-                                                            >
-                                                                <span class="block text-base font-bold leading-tight">Skor {{ $s }}</span>
-                                                                <span class="block text-[11px] {{ $isSelected ? 'text-amber-200' : 'text-muted' }} leading-tight mt-0.5">
-                                                                    {{ $labelSkorList[$s] }}
-                                                                </span>
-                                                            </button>
-                                                        @endfor
-                                                    </div>
+                                                    @if ($skorMaksButir === 2)
+                                                        <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-2">
+                                                            Skala Penilaian (0: Tidak Ada, 1: Kurang Lengkap, 2: Lengkap):
+                                                        </label>
+                                                        @php
+                                                            $labelSkorList = [
+                                                                 0 => 'Tidak Ada',
+                                                                 1 => 'Kurang Lengkap',
+                                                                 2 => 'Lengkap',
+                                                            ];
+                                                        @endphp
+                                                        <div class="grid grid-cols-3 gap-3">
+                                                            @for ($s = 0; $s <= 2; $s++)
+                                                                @php
+                                                                    $isSelected = isset($skor[$butir->id]) && (int)$skor[$butir->id] === $s && $skor[$butir->id] !== null && $skor[$butir->id] !== '';
+                                                                @endphp
+                                                                <button
+                                                                    type="button"
+                                                                    wire:key="butir-{{ $butir->id }}-skor-{{ $s }}"
+                                                                    @if(! $penilaian->isFinal()) wire:click="setSkor({{ $butir->id }}, {{ $s }})" @endif
+                                                                    class="relative flex flex-col items-center justify-center p-2.5 rounded-xl border min-h-[52px] select-none transition w-full {{ $isSelected ? 'bg-navy-900 border-navy-900 text-white font-bold ring-2 ring-orange-500 ring-offset-2 shadow' : 'bg-white border-neutral-300 text-ink hover:bg-navy-50 hover:border-navy-400' }} {{ $penilaian->isFinal() ? 'cursor-not-allowed opacity-80' : 'cursor-pointer' }}"
+                                                                    {{ $penilaian->isFinal() ? 'disabled' : '' }}
+                                                                    aria-label="Skor {{ $s }} - {{ $labelSkorList[$s] }}"
+                                                                >
+                                                                    <span class="block text-base font-bold leading-tight">Skor {{ $s }}</span>
+                                                                    <span class="block text-[11px] {{ $isSelected ? 'text-amber-200' : 'text-muted' }} leading-tight mt-0.5">
+                                                                        {{ $labelSkorList[$s] }}
+                                                                    </span>
+                                                                </button>
+                                                            @endfor
+                                                        </div>
+                                                    @else
+                                                        <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-2">
+                                                            Skala Penilaian (1: Sangat Kurang, 2: Kurang, 3: Baik, 4: Sangat Baik):
+                                                        </label>
+                                                        @php
+                                                            $labelSkorList = [
+                                                                1 => 'Sangat Kurang',
+                                                                2 => 'Kurang',
+                                                                3 => 'Baik',
+                                                                4 => 'Sangat Baik',
+                                                            ];
+                                                        @endphp
+                                                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                                            @for ($s = 1; $s <= 4; $s++)
+                                                                @php
+                                                                    $isSelected = isset($skor[$butir->id]) && (int)$skor[$butir->id] === $s && $skor[$butir->id] !== null && $skor[$butir->id] !== '';
+                                                                @endphp
+                                                                <button
+                                                                    type="button"
+                                                                    wire:key="butir-{{ $butir->id }}-skor-{{ $s }}"
+                                                                    @if(! $penilaian->isFinal()) wire:click="setSkor({{ $butir->id }}, {{ $s }})" @endif
+                                                                    class="relative flex flex-col items-center justify-center p-2.5 rounded-xl border min-h-[52px] select-none transition w-full {{ $isSelected ? 'bg-navy-900 border-navy-900 text-white font-bold ring-2 ring-orange-500 ring-offset-2 shadow' : 'bg-white border-neutral-300 text-ink hover:bg-navy-50 hover:border-navy-400' }} {{ $penilaian->isFinal() ? 'cursor-not-allowed opacity-80' : 'cursor-pointer' }}"
+                                                                    {{ $penilaian->isFinal() ? 'disabled' : '' }}
+                                                                    aria-label="Skor {{ $s }} - {{ $labelSkorList[$s] }}"
+                                                                >
+                                                                    <span class="block text-base font-bold leading-tight">Skor {{ $s }}</span>
+                                                                    <span class="block text-[11px] {{ $isSelected ? 'text-amber-200' : 'text-muted' }} leading-tight mt-0.5">
+                                                                        {{ $labelSkorList[$s] }}
+                                                                    </span>
+                                                                </button>
+                                                            @endfor
+                                                        </div>
+                                                    @endif
                                                 </div>
 
                                                 {{-- Bukti Pembelajaran (Khusus Observasi Pembelajaran) --}}
@@ -369,46 +387,59 @@
                                                     </div>
                                                 @endif
 
-                                                {{-- Catatan / Umpan Balik --}}
+                                                {{-- Catatan / Umpan Balik / Keterangan --}}
                                                 <div>
-                                                    <label class="block text-xs font-medium text-muted mb-1">Catatan / Umpan Balik Supervisor:</label>
+                                                    <label class="block text-xs font-medium text-muted mb-1">
+                                                        {{ $penilaian->jenisInstrumen?->kode === 'supervisi_perangkat' ? 'Keterangan:' : 'Catatan / Umpan Balik Supervisor:' }}
+                                                    </label>
                                                     <input type="text" 
                                                            wire:model.blur="catatanButir.{{ $butir->id }}"
                                                            {{ $penilaian->isFinal() ? 'disabled' : '' }}
-                                                           placeholder="Tuliskan umpan balik atau saran perbaikan..." 
+                                                           placeholder="{{ $penilaian->jenisInstrumen?->kode === 'supervisi_perangkat' ? 'Tuliskan keterangan dokumen (opsional)...' : 'Tuliskan umpan balik atau saran perbaikan...' }}" 
                                                            class="w-full text-sm border-neutral-300 rounded-lg focus:border-navy-700 focus:ring focus:ring-orange-500/20 disabled:bg-neutral-50 disabled:text-neutral-500">
                                                 </div>
 
-                                            {{-- B. JIKA INSTRUMEN KUALITATIF / DIALOGIS --}}
+                                            {{-- B. JIKA BUTIR KUALITATIF / DIALOGIS / CATATAN REKOMENDASI --}}
                                             @else
                                                 @if ($penilaian->isDiisiMandiriGuru())
-                                                    <div class="space-y-1.5">
+                                                    <div class="space-y-2">
                                                         <div class="flex items-center justify-between">
                                                             <label class="text-xs font-bold text-navy-900 flex items-center gap-1.5">
                                                                 <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                                                 </svg>
-                                                                <span>Isian / Respon Guru:</span>
+                                                                <span>Isian / Refleksi Mandiri Guru:</span>
                                                             </label>
                                                             @if (!empty($catatanButir[$butir->id]))
-                                                                <span class="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Terisi oleh Guru</span>
+                                                                <span class="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                                                                    Terisi oleh Guru
+                                                                </span>
                                                             @else
-                                                                <span class="text-[11px] text-muted bg-neutral-100 px-2 py-0.5 rounded">Belum diisi guru</span>
+                                                                <span class="text-[11px] font-medium text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
+                                                                    Belum diisi oleh Guru
+                                                                </span>
                                                             @endif
                                                         </div>
-                                                        <textarea wire:model.blur="catatanButir.{{ $butir->id }}"
-                                                                  rows="3"
-                                                                  {{ $penilaian->isFinal() ? 'disabled' : '' }}
-                                                                  placeholder="Jawaban atau catatan guru untuk aspek ini..." 
-                                                                  class="w-full text-[15px] border-neutral-300 rounded-lg focus:border-navy-700 focus:ring focus:ring-orange-500/20 disabled:bg-neutral-50 disabled:text-neutral-500"></textarea>
+
+                                                        @if (!empty($catatanButir[$butir->id]))
+                                                            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-ink text-[15px] leading-relaxed whitespace-pre-line shadow-2xs">
+                                                                {{ $catatanButir[$butir->id] }}
+                                                            </div>
+                                                        @else
+                                                            <div class="p-4 rounded-xl bg-neutral-50 border border-dashed border-neutral-300 text-muted text-sm italic">
+                                                                Guru belum melengkapi jawaban atau refleksi untuk butir aspek ini.
+                                                            </div>
+                                                        @endif
                                                     </div>
                                                 @else
                                                     <div>
-                                                        <label class="block text-xs font-semibold text-navy-900 mb-1.5">Catatan Hasil Percakapan / Refleksi:</label>
+                                                        <label class="block text-xs font-semibold text-navy-900 mb-1.5">
+                                                            Catatan / Uraian Telaah:
+                                                        </label>
                                                         <textarea wire:model.blur="catatanButir.{{ $butir->id }}"
                                                                   rows="3"
                                                                   {{ $penilaian->isFinal() ? 'disabled' : '' }}
-                                                                  placeholder="Tuliskan hasil diskusi, jawaban guru, atau catatan reflektif..." 
+                                                                  placeholder="Tuliskan catatan, analisis, kelebihan, atau rekomendasi..." 
                                                                   class="w-full text-[15px] border-neutral-300 rounded-lg focus:border-navy-700 focus:ring focus:ring-orange-500/20 disabled:bg-neutral-50 disabled:text-neutral-500"></textarea>
                                                     </div>
                                                 @endif
@@ -421,6 +452,73 @@
                     </div>
                 @endforeach
             @endif
+        </div>
+    @endif
+
+    @if ($penilaian->isKuantitatif())
+        {{-- Rekapitulasi Perhitungan Nilai Akhir Kuantitatif --}}
+        <div class="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-neutral-100 gap-2">
+                <div>
+                    <h3 class="text-lg font-bold text-navy-900 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-navy-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                        <span>Perhitungan Nilai Akhir Instrumen</span>
+                    </h3>
+                    <p class="text-xs text-muted mt-0.5">Nilai akhir dihitung secara otomatis dengan rumus: <strong>(Total Skor Perolehan / Total Skor Maksimal) &times; 100</strong>.</p>
+                </div>
+                <div class="text-left sm:text-right">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {{ $penilaian->isFinal() ? 'bg-emerald-100 text-emerald-800' : 'bg-navy-50 text-navy-800' }}">
+                        {{ $penilaian->isFinal() ? 'Nilai Resmi (Final)' : 'Kalkulasi Real-time' }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                <div class="bg-navy-50/50 rounded-xl p-4 border border-navy-100">
+                    <span class="block text-xs uppercase font-semibold text-muted">Skor Perolehan</span>
+                    <span class="text-2xl font-extrabold text-navy-900 mt-1 block">
+                        {{ $penilaian->isFinal() ? $penilaian->total_skor : $this->skorPerolehan }}
+                    </span>
+                    <span class="text-[11px] text-muted">dari {{ $this->jumlahTerisi }} butir terisi</span>
+                </div>
+
+                <div class="bg-navy-50/50 rounded-xl p-4 border border-navy-100">
+                    <span class="block text-xs uppercase font-semibold text-muted">Skor Maksimal</span>
+                    <span class="text-2xl font-extrabold text-navy-900 mt-1 block">
+                        {{ $penilaian->isFinal() ? $penilaian->skor_maks : $this->skorMaksimal }}
+                    </span>
+                    <span class="text-[11px] text-muted">dari {{ $this->totalButirKuantitatif }} butir penilaian</span>
+                </div>
+
+                <div class="bg-emerald-50/60 rounded-xl p-4 border border-emerald-200">
+                    <span class="block text-xs uppercase font-semibold text-emerald-800">Nilai Akhir (0 - 100)</span>
+                    <span class="text-2xl font-extrabold text-emerald-700 mt-1 block">
+                        {{ number_format($penilaian->isFinal() ? $penilaian->nilai : $this->nilaiAkhirHitungan, 2) }}
+                    </span>
+                    <span class="text-[11px] text-emerald-700 font-medium">({{ $penilaian->isFinal() ? $penilaian->total_skor : $this->skorPerolehan }} / {{ $penilaian->isFinal() ? $penilaian->skor_maks : $this->skorMaksimal }}) &times; 100</span>
+                </div>
+
+                <div class="bg-emerald-50/60 rounded-xl p-4 border border-emerald-200">
+                    <span class="block text-xs uppercase font-semibold text-emerald-800">Predikat Capaian</span>
+                    <span class="text-2xl font-extrabold text-emerald-800 mt-1 block">
+                        {{ $penilaian->isFinal() ? $penilaian->predikat : $this->estimasiPredikat }}
+                    </span>
+                    <span class="text-[11px] text-emerald-700">
+                        @php
+                            $pred = $penilaian->isFinal() ? $penilaian->predikat : $this->estimasiPredikat;
+                            $keteranganPredikat = match($pred) {
+                                'A' => 'Sangat Baik',
+                                'B' => 'Baik',
+                                'C' => 'Cukup',
+                                default => 'Kurang',
+                            };
+                        @endphp
+                        {{ $keteranganPredikat }}
+                    </span>
+                </div>
+            </div>
         </div>
     @endif
 
@@ -502,11 +600,23 @@
                 </button>
 
                 {{-- Tombol Finalisasi (Navy-900) --}}
-                <button type="button" 
-                        @click="showFinalDialog = true"
-                        class="px-6 py-3 rounded-xl font-bold text-white bg-navy-900 hover:bg-navy-800 active:scale-[0.98] transition shadow-sm min-h-[44px] flex items-center justify-center gap-2">
-                    Finalisasi
-                </button>
+                @if ($penilaian->isDiisiMandiriGuru() && ! $penilaian->isGuruSudahSubmit())
+                    <button type="button" 
+                            disabled
+                            class="px-6 py-3 rounded-xl font-bold text-neutral-400 bg-neutral-200 cursor-not-allowed shadow-none min-h-[44px] flex items-center justify-center gap-2"
+                            title="Menunggu penyerahan isian mandiri dari Guru">
+                        <svg class="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                        <span>Menunggu Isian Guru</span>
+                    </button>
+                @else
+                    <button type="button" 
+                            @click="showFinalDialog = true"
+                            class="px-6 py-3 rounded-xl font-bold text-white bg-navy-900 hover:bg-navy-800 active:scale-[0.98] transition shadow-sm min-h-[44px] flex items-center justify-center gap-2">
+                        Finalisasi
+                    </button>
+                @endif
             </div>
 
             {{-- Dialog Konfirmasi Finalisasi --}}
@@ -534,6 +644,29 @@
                         </div>
                     @endif
 
+                    @if ($penilaian->isKuantitatif())
+                        <div class="p-4 bg-navy-50/70 border border-navy-200 rounded-xl space-y-2 text-sm">
+                            <div class="flex items-center justify-between text-muted">
+                                <span>Skor Perolehan:</span>
+                                <strong class="text-navy-900">{{ $this->skorPerolehan }} dari {{ $this->skorMaksimal }}</strong>
+                            </div>
+                            <div class="flex items-center justify-between text-muted text-xs">
+                                <span>Rumus Perhitungan:</span>
+                                <code>({{ $this->skorPerolehan }} / {{ $this->skorMaksimal }}) &times; 100</code>
+                            </div>
+                            <div class="flex items-center justify-between text-base font-bold text-emerald-800 pt-2 border-t border-navy-200">
+                                <span>Nilai Akhir & Predikat:</span>
+                                <span>{{ number_format($this->nilaiAkhirHitungan, 2) }} (Predikat {{ $this->estimasiPredikat }})</span>
+                            </div>
+                        </div>
+                    @endif
+
+                    @if ($penilaian->isDiisiMandiriGuru() && ! $penilaian->isGuruSudahSubmit())
+                        <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm">
+                            <strong>Perhatian:</strong> Guru belum menyelesaikan dan menyerahkan isian mandirinya ke supervisor. Finalisasi belum dapat dilakukan.
+                        </div>
+                    @endif
+
                     @if ($penilaian->isDiisiMandiriGuru() && (empty(trim((string) $catatan)) || empty(trim((string) $tindakLanjut))))
                         <div class="p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-800 text-sm">
                             <strong>Perhatian:</strong> Kolom Catatan Umum / Rekomendasi Supervisor dan Rencana Tindak Lanjut Pembinaan wajib diisi sebelum finalisasi.
@@ -550,7 +683,8 @@
                                 wire:click="finalisasi" 
                                 @click="showFinalDialog = false"
                                 wire:loading.attr="disabled"
-                                class="px-5 py-2.5 rounded-xl font-bold text-white bg-navy-900 hover:bg-navy-800 transition min-h-[44px] flex items-center gap-2">
+                                {{ ($penilaian->isDiisiMandiriGuru() && ! $penilaian->isGuruSudahSubmit()) ? 'disabled' : '' }}
+                                class="px-5 py-2.5 rounded-xl font-bold text-white bg-navy-900 hover:bg-navy-800 transition min-h-[44px] flex items-center gap-2 disabled:bg-neutral-300 disabled:text-neutral-500 disabled:cursor-not-allowed">
                             <span wire:loading.remove wire:target="finalisasi">Ya, Finalisasi Sekarang</span>
                             <span wire:loading wire:target="finalisasi">Memproses...</span>
                         </button>

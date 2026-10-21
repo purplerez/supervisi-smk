@@ -189,15 +189,15 @@
         </div>
     </div>
 
-    {{-- LIMA TOMBOL INSTRUMEN RESMI SUPERVISI --}}
+    {{-- LEMBAR PENILAIAN INSTRUMEN RESMI SUPERVISI --}}
     <div class="space-y-4">
         <h3 class="text-xl font-bold text-navy-900">Lembar Penilaian Supervisi (5 Tahap Bertahap)</h3>
         <p class="text-muted text-[15px]">Pelaksanaan supervisi wajib diselesaikan secara bertahap berurutan. Setiap tahap harus difinalisasi sebelum melanjutkan ke tahap berikutnya.</p>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             @php
-                // Urutan standar 5 instrumen resmi Kemendikdasmen / BBGTK Jatim
-                $urutanKode = ['pra_observasi', 'telaah_perencanaan', 'observasi_pembelajaran', 'refleksi_pasca_observasi', 'rencana_pengembangan_diri'];
+                // Urutan standar 6 instrumen resmi Kemendikdasmen (5 Tahap, Tahap 2 memiliki 2 instrumen)
+                $urutanKode = ['pra_observasi', 'telaah_perencanaan', 'supervisi_perangkat', 'observasi_pembelajaran', 'refleksi_pasca_observasi', 'rencana_pengembangan_diri'];
                 $penilaianSorted = $penugasan->penilaian->sortBy(function($p) use ($urutanKode) {
                     $index = array_search($p->jenisInstrumen->kode ?? '', $urutanKode);
                     return $index !== false ? $index : 99;
@@ -206,7 +206,16 @@
 
             @foreach($penilaianSorted as $pen)
                 @php
-                    $nomorTahap = $pen->nomor_tahap;
+                    $kode = $pen->jenisInstrumen->kode ?? '';
+                    $labelTahap = match($kode) {
+                        'pra_observasi' => 'Tahap 1',
+                        'telaah_perencanaan' => 'Tahap 2.1',
+                        'supervisi_perangkat' => 'Tahap 2.2',
+                        'observasi_pembelajaran' => 'Tahap 3',
+                        'refleksi_pasca_observasi' => 'Tahap 4',
+                        'rencana_pengembangan_diri' => 'Tahap 5',
+                        default => 'Tahap ' . $pen->nomor_tahap,
+                    };
                     $isTerkunci = $pen->isTerkunciPrasyarat();
                     $isMenunggu = $pen->isMenungguTinjauanSupervisor();
                     $isMandiri = $pen->isDiisiMandiriGuru();
@@ -217,8 +226,8 @@
                     <div>
                         <div class="flex items-start justify-between gap-3 mb-2">
                             <div class="flex items-center gap-2">
-                                <span class="w-6 h-6 rounded-full {{ $isTerkunci ? 'bg-neutral-200 text-neutral-600' : ($isFinal ? 'bg-emerald-100 text-emerald-800' : 'bg-navy-100 text-navy-800') }} font-bold text-xs flex items-center justify-center shrink-0">
-                                    {{ $nomorTahap }}
+                                <span class="px-2 py-0.5 rounded-md {{ $isTerkunci ? 'bg-neutral-200 text-neutral-600' : ($isFinal ? 'bg-emerald-100 text-emerald-800' : 'bg-navy-100 text-navy-800') }} font-bold text-xs flex items-center justify-center shrink-0">
+                                    {{ $labelTahap }}
                                 </span>
                                 <h4 class="text-lg font-bold text-navy-900">
                                     {{ $pen->jenisInstrumen->nama }}
@@ -239,12 +248,16 @@
                                 </span>
                             @elseif ($pen->status === 'belum')
                                 @if ($isMandiri)
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-50 text-sky-800 border border-sky-200 shrink-0">Isian Guru</span>
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-50 text-sky-800 border border-sky-200 shrink-0">Menunggu Isian Guru</span>
                                 @else
                                     <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-neutral-100 text-neutral-600 shrink-0">Belum Dimulai</span>
                                 @endif
                             @elseif ($pen->status === 'draft')
-                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 shrink-0">Draft</span>
+                                @if ($isMandiri && ! $pen->isGuruSudahSubmit())
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-50 text-sky-800 border border-sky-200 shrink-0">Menunggu Isian Guru</span>
+                                @else
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 shrink-0">Draft</span>
+                                @endif
                             @elseif ($pen->status === 'direvisi')
                                 <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 shrink-0">Sedang Direvisi</span>
                             @elseif ($pen->status === 'final')
@@ -290,7 +303,7 @@
                             @if($isFinal)
                                 Terkunci &bull; {{ $pen->finalized_at?->format('d/m/Y') }}
                             @elseif($isTerkunci)
-                                Tahap {{ $nomorTahap }} dari 5
+                                {{ $labelTahap }} &bull; Belum terbuka
                             @else
                                 {{ $pen->isBelum() ? 'Belum dimulai' : 'Terakhir disimpan: ' . $pen->updated_at->diffForHumans() }}
                             @endif
@@ -326,6 +339,8 @@
                                         <span>Lihat Penilaian</span>
                                     @elseif($isMenunggu)
                                         <span>Tinjau & Lengkapi &rarr;</span>
+                                    @elseif($isMandiri && ! $pen->isGuruSudahSubmit())
+                                        <span>Lihat Lembar &rarr;</span>
                                     @elseif($pen->isBelum())
                                         <span>Mulai Menilai &rarr;</span>
                                     @else

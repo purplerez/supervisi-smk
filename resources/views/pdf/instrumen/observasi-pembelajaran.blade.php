@@ -42,17 +42,16 @@
         <thead>
             <tr>
                 <th style="width: 5%;" rowspan="2">No</th>
-                <th style="width: 45%;" rowspan="2">Aspek yang diamati</th>
-                <th style="width: 17%;" colspan="5">Skala</th>
+                <th style="width: 46%;" rowspan="2">Aspek yang diamati</th>
+                <th style="width: 16%;" colspan="4">Skala</th>
                 <th style="width: 17%;" rowspan="2">Bukti Pembelajaran</th>
                 <th style="width: 16%;" rowspan="2">Catatan</th>
             </tr>
             <tr>
-                <th style="width: 3.4%;">0</th>
-                <th style="width: 3.4%;">1</th>
-                <th style="width: 3.4%;">2</th>
-                <th style="width: 3.4%;">3</th>
-                <th style="width: 3.4%;">4</th>
+                <th style="width: 4%;">1</th>
+                <th style="width: 4%;">2</th>
+                <th style="width: 4%;">3</th>
+                <th style="width: 4%;">4</th>
             </tr>
         </thead>
         <tbody>
@@ -63,7 +62,7 @@
                     @endphp
 
                     <tr class="bagian-header">
-                        <td colspan="9">
+                        <td colspan="8">
                             {{ $bagian->judul }}
                         </td>
                     </tr>
@@ -78,7 +77,7 @@
                         @if($isBagianKualitatif || $butir->skor_maks == 0)
                             <tr>
                                 <td class="text-center">{{ $nomorUrut++ }}</td>
-                                <td colspan="6" style="font-weight: 600; background-color: #FAFAFA;">
+                                <td colspan="5" style="font-weight: 600; background-color: #FAFAFA;">
                                     {!! nl2br(e($butir->uraian)) !!}
                                 </td>
                                 <td colspan="2" style="font-size: 8.5pt; color: #1F2937;">
@@ -91,7 +90,7 @@
                                 <td style="line-height: 1.35;">
                                     {!! nl2br(e($butir->uraian)) !!}
                                 </td>
-                                @for($s = 0; $s <= 4; $s++)
+                                @for($s = 1; $s <= 4; $s++)
                                     <td class="text-center" style="font-weight: bold; font-size: 9pt; {{ $skorButir === $s ? 'background-color: #E6ECF7; color: #253C6D;' : '' }}">
                                         @if($skorButir === $s)
                                             ✓
@@ -115,7 +114,7 @@
     {{-- KETERANGAN SKALA RESMI --}}
     <div style="font-size: 8pt; color: #374151; margin-top: 6px; margin-bottom: 10px; line-height: 1.3;">
         <strong>Skala yang digunakan dalam menelaah:</strong><br>
-        0 = tidak ada &nbsp;|&nbsp; 1 = sangat kurang &nbsp;|&nbsp; 2 = kurang &nbsp;|&nbsp; 3 = baik &nbsp;|&nbsp; 4 = sangat baik
+        1 = sangat kurang &nbsp;|&nbsp; 2 = kurang &nbsp;|&nbsp; 3 = baik &nbsp;|&nbsp; 4 = sangat baik
     </div>
 
     {{-- REKAPITULASI SKOR RESMI --}}
@@ -165,19 +164,24 @@
     {{-- BLOK TANDA TANGAN --}}
     <table class="ttd-table">
         <tr>
+            <td style="width: 50%;"></td>
+            <td style="width: 50%; text-align: center; vertical-align: top;">
+                {{ $penilaian->sekolah->alamat ? explode(',', $penilaian->sekolah->alamat)[0] : 'Di Tempat' }}, 
+                {{ $penilaian->finalized_at?->translatedFormat('d F Y') ?: now()->translatedFormat('d F Y') }}
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 50%; text-align: center; vertical-align: top;">
+                Supervisor Penilai,
+                <div class="ttd-space"></div>
+                <div class="ttd-nama">{{ $penilaian->penugasan->penilai->nama }}</div>
+                <div style="font-size: 8.5pt; color: #4B5563;">NIP: {{ $penilaian->penugasan->penilai->nip ?: '-' }}</div>
+            </td>
             <td style="width: 50%; text-align: center; vertical-align: top;">
                 Guru yang Disupervisi,
                 <div class="ttd-space"></div>
                 <div class="ttd-nama">{{ $penilaian->penugasan->guru->nama }}</div>
                 <div style="font-size: 8.5pt; color: #4B5563;">NIP: {{ $penilaian->penugasan->guru->nip ?: '-' }}</div>
-            </td>
-            <td style="width: 50%; text-align: center; vertical-align: top;">
-                {{ $penilaian->sekolah->alamat ? explode(',', $penilaian->sekolah->alamat)[0] : 'Di Tempat' }}, 
-                {{ $penilaian->finalized_at?->translatedFormat('d F Y') ?: now()->translatedFormat('d F Y') }}<br>
-                Supervisor Penilai,
-                <div class="ttd-space"></div>
-                <div class="ttd-nama">{{ $penilaian->penugasan->penilai->nama }}</div>
-                <div style="font-size: 8.5pt; color: #4B5563;">NIP: {{ $penilaian->penugasan->penilai->nip ?: '-' }}</div>
             </td>
         </tr>
     </table>

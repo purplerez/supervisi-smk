@@ -238,9 +238,10 @@
                                 <tr>
                                     <th class="py-3 px-4 font-bold">Guru & NIP</th>
                                     <th class="py-3 px-4 font-bold">Supervisor</th>
-                                    <th class="py-3 px-4 font-bold text-center">Status 5 Instrumen</th>
+                                    <th class="py-3 px-4 font-bold text-center">Status Tahapan</th>
                                     <th class="py-3 px-4 font-bold text-center">Progres</th>
-                                    <th class="py-3 px-4 font-bold text-center">Rata-rata</th>
+                                    <th class="py-3 px-4 font-bold text-center">Total Nilai</th>
+                                    <th class="py-3 px-4 font-bold text-center">Predikat</th>
                                     <th class="py-3 px-4 font-bold text-center">Status</th>
                                     <th class="py-3 px-4 font-bold text-center">Aksi</th>
                                 </tr>
@@ -252,8 +253,8 @@
                                         $finalCount = $finalList->count();
                                         $totalInstrumen = $item->penilaian->count();
                                         $isSelesai = $totalInstrumen > 0 && $finalCount === $totalInstrumen;
-                                        $kuantitatifFinal = $finalList->filter(fn($p) => $p->nilai !== null);
-                                        $rataRata = $kuantitatifFinal->count() > 0 ? round($kuantitatifFinal->sum('nilai') / $kuantitatifFinal->count(), 2) : null;
+                                        $totalNilai = $item->nilai_akhir;
+                                        $predikatAkhir = $item->predikat_akhir;
                                     @endphp
                                     <tr class="hover:bg-gray-50/60 transition-colors">
                                         {{-- Guru --}}
@@ -281,6 +282,7 @@
                                                         $singkatan = match($pen->jenisInstrumen->kode ?? '') {
                                                             'pra_observasi' => 'PRA',
                                                             'telaah_perencanaan' => 'TELAAH',
+                                                            'supervisi_perangkat' => 'PERANGKAT',
                                                             'observasi_pembelajaran' => 'OBS',
                                                             'refleksi_pasca_observasi' => 'REFL',
                                                             'rencana_pengembangan_diri' => 'RPD',
@@ -337,10 +339,28 @@
                                             </span>
                                         </td>
 
-                                        {{-- Nilai Rata-Rata --}}
+                                        {{-- Total Nilai (Rata-Rata Kuantitatif) --}}
                                         <td class="py-3.5 px-4 text-center">
-                                            @if($rataRata !== null)
-                                                <span class="font-bold text-sm text-navy-900">{{ number_format($rataRata, 2) }}</span>
+                                            @if($totalNilai !== null)
+                                                <span class="font-bold text-base text-navy-900">{{ number_format($totalNilai, 2, ',', '.') }}</span>
+                                            @else
+                                                <span class="text-xs text-muted">-</span>
+                                            @endif
+                                        </td>
+
+                                        {{-- Predikat Kinerja --}}
+                                        <td class="py-3.5 px-4 text-center">
+                                            @if($predikatAkhir !== null)
+                                                @php
+                                                    $badgeClass = match($predikatAkhir) {
+                                                        'Diatas Ekspektasi' => 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                                                        'Sesuai Ekspektasi' => 'bg-blue-100 text-blue-900 border-blue-300',
+                                                        default => 'bg-amber-100 text-amber-900 border-amber-300',
+                                                    };
+                                                @endphp
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border {{ $badgeClass }}">
+                                                    {{ $predikatAkhir }}
+                                                </span>
                                             @else
                                                 <span class="text-xs text-muted">-</span>
                                             @endif

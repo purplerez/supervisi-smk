@@ -112,7 +112,7 @@
     <div style="margin-top: 16px; page-break-inside: avoid;">
         <table style="width: 100%; border: none; font-size: 9pt;">
             <tr>
-                <td style="width: 40%; vertical-align: top;">
+                <td style="width: 36%; vertical-align: top;">
                     <strong>Disepakati Bersama</strong><br>
                     <table style="border: none; margin-top: 3px; font-size: 8.5pt;">
                         <tr>
@@ -127,17 +127,17 @@
                         </tr>
                     </table>
                 </td>
-                <td style="width: 30%; text-align: center; vertical-align: top;">
-                    Guru,<br>
-                    <div style="height: 55px;"></div>
-                    <strong>( {{ $penilaian->penugasan->guru->nama }} )</strong>
-                    <div style="font-size: 8pt; color: #4B5563;">NIP: {{ $penilaian->penugasan->guru->nip ?: '................................' }}</div>
-                </td>
-                <td style="width: 30%; text-align: center; vertical-align: top;">
-                    Supervisor,<br>
+                <td style="width: 32%; text-align: center; vertical-align: top;">
+                    Supervisor Penilai,<br>
                     <div style="height: 55px;"></div>
                     <strong>( {{ $penilaian->penugasan->penilai->nama }} )</strong>
                     <div style="font-size: 8pt; color: #4B5563;">NIP: {{ $penilaian->penugasan->penilai->nip ?: '................................' }}</div>
+                </td>
+                <td style="width: 32%; text-align: center; vertical-align: top;">
+                    Guru yang Disupervisi,<br>
+                    <div style="height: 55px;"></div>
+                    <strong>( {{ $penilaian->penugasan->guru->nama }} )</strong>
+                    <div style="font-size: 8pt; color: #4B5563;">NIP: {{ $penilaian->penugasan->guru->nip ?: '................................' }}</div>
                 </td>
             </tr>
         </table>

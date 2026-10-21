@@ -156,13 +156,14 @@
                         </div>
                     </div>
 
-                    {{-- Status 5 Instrumen Saya --}}
-                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4">
+                    {{-- Status 6 Instrumen Saya --}}
+                    <div class="grid grid-cols-2 sm:grid-cols-6 gap-3 mt-4">
                         @foreach($penugasanSebagaiGuru->penilaian as $penDiri)
                             @php
                                 $namaInstrumenDiri = match($penDiri->jenisInstrumen->kode ?? '') {
                                     'pra_observasi' => 'Pra-Observasi',
                                     'telaah_perencanaan' => 'Telaah Perencanaan',
+                                    'supervisi_perangkat' => 'Supervisi Perangkat 2026',
                                     'observasi_pembelajaran' => 'Observasi KBM',
                                     'refleksi_pasca_observasi' => 'Refleksi Pasca',
                                     'rencana_pengembangan_diri' => 'Pengembangan Diri',
@@ -283,13 +284,14 @@
                                     <div class="bg-orange-500 h-2.5 rounded-full transition-all duration-300" style="width: {{ $persenSelesai }}%"></div>
                                 </div>
 
-                                {{-- Badge Status 5 Instrumen --}}
+                                {{-- Badge Status 6 Instrumen (5 Tahap) --}}
                                 <div class="flex flex-wrap gap-2 pt-1">
                                     @foreach($item->penilaian as $pen)
                                         @php
                                             $namaInstrumen = match($pen->jenisInstrumen->kode ?? '') {
                                                 'pra_observasi' => 'Pra-Observasi',
                                                 'telaah_perencanaan' => 'Telaah Perencanaan',
+                                                'supervisi_perangkat' => 'Supervisi Perangkat',
                                                 'observasi_pembelajaran' => 'Observasi KBM',
                                                 'refleksi_pasca_observasi' => 'Refleksi Pasca',
                                                 'rencana_pengembangan_diri' => 'Pengembangan Diri',

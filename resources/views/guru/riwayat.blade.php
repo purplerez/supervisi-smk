@@ -97,12 +97,18 @@
                                 <td class="py-4 px-4">
                                     @if($isSelesai)
                                         <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold" style="background-color: #E8F5E9; color: #1B5E20;">
-                                            Selesai (4/4)
+                                            Selesai ({{ $finalCount }}/{{ $totalCount }})
                                         </span>
                                     @else
                                         <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold" style="background-color: #FFF3D6; color: #8A5A00;">
                                             Belum selesai ({{ $finalCount }}/{{ $totalCount }})
                                         </span>
+                                    @endif
+                                    @if($item->nilai_akhir !== null)
+                                        <div class="mt-1 text-xs">
+                                            <span class="font-bold text-gray-900">{{ number_format($item->nilai_akhir, 2, ',', '.') }}</span>
+                                            <span class="text-gray-600 font-medium">({{ $item->predikat_akhir }})</span>
+                                        </div>
                                     @endif
                                 </td>
                                 <td class="py-4 px-4 text-center">

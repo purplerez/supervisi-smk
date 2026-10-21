@@ -324,17 +324,26 @@
         </thead>
         <tbody>
             @php
-                $urutanKunci = ['pra_observasi', 'telaah_perencanaan', 'observasi_pembelajaran', 'refleksi_pasca_observasi', 'rencana_pengembangan_diri'];
+                $urutanKunci = [
+                    'pra_observasi' => 'Lembar Catatan Percakapan Pra-Observasi',
+                    'telaah_perencanaan' => 'Instrumen Telaah Perencanaan Pembelajaran',
+                    'supervisi_perangkat' => 'Instrumen Supervisi Perangkat Pembelajaran Mendalam 2026',
+                    'observasi_pembelajaran' => 'Instrumen Observasi Pelaksanaan Pembelajaran',
+                    'refleksi_pasca_observasi' => 'Instrumen Refleksi Pasca Pembelajaran',
+                    'rencana_pengembangan_diri' => 'Lembar Rencana Pengembangan Diri Guru',
+                ];
                 $totalNilai = 0;
                 $countNilai = 0;
+                $noIdx = 0;
             @endphp
 
-            @foreach($urutanKunci as $noIdx => $kodeKunci)
+            @foreach($urutanKunci as $kodeKunci => $namaBaku)
                 @php
+                    $noIdx++;
                     $penItem = $penugasan->penilaian->firstWhere('jenisInstrumen.kode', $kodeKunci);
-                    $namaInst = $penItem?->jenisInstrumen?->nama ?? ucfirst(str_replace('_', ' ', $kodeKunci));
+                    $namaInst = $penItem?->jenisInstrumen?->nama ?? $namaBaku;
                     $isFinal = $penItem?->isFinal() ?? false;
-                    $isKuan = $penItem?->isKuantitatif() ?? false;
+                    $isKuan = $penItem ? $penItem->isKuantitatif() : in_array($kodeKunci, ['telaah_perencanaan', 'supervisi_perangkat', 'observasi_pembelajaran'], true);
 
                     if ($isFinal && $isKuan && $penItem->nilai !== null) {
                         $totalNilai += (float) $penItem->nilai;
@@ -381,20 +390,13 @@
                 </tr>
             @endforeach
         </tbody>
-        @if($countNilai > 0)
-            @php
-                $rerata = round($totalNilai / $countNilai, 2);
-                $predikatAkhir = 'C';
-                if ($rerata >= 86) $predikatAkhir = 'A';
-                elseif ($rerata >= 76) $predikatAkhir = 'B';
-                elseif ($rerata < 56) $predikatAkhir = 'D';
-            @endphp
+        @if($penugasan->nilai_akhir !== null)
             <tfoot>
                 <tr style="background-color: #E6ECF7; font-weight: bold; color: #253C6D;">
-                    <td colspan="3" class="text-right" style="padding: 6px;">RATA-RATA NILAI AKADEMIK (KUANTITATIF):</td>
-                    <td class="text-center" style="font-size: 10.5pt; color: #1B5E20;">{{ number_format($rerata, 2) }}</td>
-                    <td class="text-center" style="font-size: 10.5pt; color: #1B5E20;">{{ $predikatAkhir }}</td>
-                    <td style="font-size: 8pt; color: #253C6D;">Berdasarkan instrumen final</td>
+                    <td colspan="3" class="text-right" style="padding: 6px;">TOTAL NILAI AKHIR (RATA-RATA KUANTITATIF):</td>
+                    <td class="text-center" style="font-size: 10.5pt; color: #1B5E20;">{{ number_format($penugasan->nilai_akhir, 2) }}</td>
+                    <td class="text-center" style="font-size: 9pt; color: #1B5E20; font-weight: bold;">{{ $penugasan->predikat_akhir }}</td>
+                    <td style="font-size: 8pt; color: #253C6D;">Rata-rata instrumen kuantitatif final</td>
                 </tr>
             </tfoot>
         @endif
@@ -403,25 +405,30 @@
     {{-- TANDA TANGAN COVER --}}
     <table class="ttd-table" style="margin-top: 30px;">
         <tr>
+            <td style="width: 50%;"></td>
+            <td style="width: 50%; text-align: center; vertical-align: top;">
+                {{ $penugasan->sekolah->alamat ? explode(',', $penugasan->sekolah->alamat)[0] : 'Di Tempat' }}, 
+                {{ now()->translatedFormat('d F Y') }}
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 50%; text-align: center; vertical-align: top;">
+                Supervisor Penilai,
+                <div class="ttd-space"></div>
+                <div class="ttd-nama">{{ $penugasan->penilai->nama }}</div>
+                <div style="font-size: 8.5pt; color: #4B5563;">NIP: {{ $penugasan->penilai->nip ?: '-' }}</div>
+            </td>
             <td style="width: 50%; text-align: center; vertical-align: top;">
                 Guru yang Disupervisi,
                 <div class="ttd-space"></div>
                 <div class="ttd-nama">{{ $penugasan->guru->nama }}</div>
                 <div style="font-size: 8.5pt; color: #4B5563;">NIP: {{ $penugasan->guru->nip ?: '-' }}</div>
             </td>
-            <td style="width: 50%; text-align: center; vertical-align: top;">
-                {{ $penugasan->sekolah->alamat ? explode(',', $penugasan->sekolah->alamat)[0] : 'Di Tempat' }}, 
-                {{ now()->translatedFormat('d F Y') }}<br>
-                Supervisor Penilai,
-                <div class="ttd-space"></div>
-                <div class="ttd-nama">{{ $penugasan->penilai->nama }}</div>
-                <div style="font-size: 8.5pt; color: #4B5563;">NIP: {{ $penugasan->penilai->nip ?: '-' }}</div>
-            </td>
         </tr>
     </table>
 
     {{-- HALAMAN BERIKUTNYA: SETIAP INSTRUMEN DILAMPIRKAN SECARA LENGKAP --}}
-    @foreach($urutanKunci as $kodeKunci)
+    @foreach(array_keys($urutanKunci) as $kodeKunci)
         @php
             $penilaian = $penugasan->penilaian->firstWhere('jenisInstrumen.kode', $kodeKunci);
         @endphp
@@ -447,6 +454,8 @@
                 @include('pdf.instrumen.pra-observasi', ['penilaian' => $penilaian])
             @elseif($kodeKunci === 'telaah_perencanaan')
                 @include('pdf.instrumen.telaah-perencanaan', ['penilaian' => $penilaian])
+            @elseif($kodeKunci === 'supervisi_perangkat')
+                @include('pdf.instrumen.supervisi-perangkat', ['penilaian' => $penilaian])
             @elseif($kodeKunci === 'observasi_pembelajaran')
                 @include('pdf.instrumen.observasi-pembelajaran', ['penilaian' => $penilaian])
             @elseif($kodeKunci === 'refleksi_pasca_observasi')

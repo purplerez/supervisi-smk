@@ -212,6 +212,7 @@
                                                             $singkatan = match($pen->jenisInstrumen->kode ?? '') {
                                                                 'pra_observasi' => 'PRA',
                                                                 'telaah_perencanaan' => 'TELAAH',
+                                                                'supervisi_perangkat' => 'PERANGKAT',
                                                                 'observasi_pembelajaran' => 'OBS',
                                                                 'refleksi_pasca_observasi' => 'REFL',
                                                                 'rencana_pengembangan_diri' => 'RPD',
