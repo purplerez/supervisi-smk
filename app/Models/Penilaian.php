@@ -176,7 +176,7 @@ class Penilaian extends Model
     {
         $kode = $this->jenisInstrumen?->kode;
 
-        return in_array($kode, ['telaah_perencanaan', 'observasi_pembelajaran'], true);
+        return in_array($kode, ['telaah_perencanaan', 'supervisi_perangkat', 'observasi_pembelajaran'], true);
     }
 
     /**
@@ -188,16 +188,18 @@ class Penilaian extends Model
     }
 
     /**
-     * Urutan standar 5 tahap instrumen supervisi resmi Kemendikdasmen.
+     * Urutan standar 6 instrumen supervisi resmi Kemendikdasmen (5 tahap pelaksanaan).
+     * Tahap 2 (Dokumen Perencanaan Pembelajaran) menaungi 2 instrumen: telaah_perencanaan & supervisi_perangkat.
      *
      * @var array<int, string>
      */
     public const URUTAN_KODE = [
         1 => 'pra_observasi',
         2 => 'telaah_perencanaan',
-        3 => 'observasi_pembelajaran',
-        4 => 'refleksi_pasca_observasi',
-        5 => 'rencana_pengembangan_diri',
+        3 => 'supervisi_perangkat',
+        4 => 'observasi_pembelajaran',
+        5 => 'refleksi_pasca_observasi',
+        6 => 'rencana_pengembangan_diri',
     ];
 
     /**

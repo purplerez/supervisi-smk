@@ -10,6 +10,7 @@ use App\Models\Penugasan;
 use App\Models\Periode;
 use App\Models\Sekolah;
 use App\Models\User;
+use App\Services\PenugasanService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -256,6 +257,7 @@ class LaporanController extends Controller
      */
     public function cetakPenilaianPdf(Request $request, string $kode, Penilaian $penilaian): Response
     {
+        @ini_set('memory_limit', '512M');
         $sekolah = Sekolah::where('kode', $kode)->firstOrFail();
 
         if ((int) $penilaian->sekolah_id !== (int) $sekolah->id) {
@@ -309,6 +311,7 @@ class LaporanController extends Controller
      */
     public function cetakSemuaPenilaianPdf(Request $request, string $kode, Penugasan $penugasan): Response
     {
+        @ini_set('memory_limit', '512M');
         $sekolah = Sekolah::where('kode', $kode)->with('kepalaSekolah')->firstOrFail();
 
         if ((int) $penugasan->sekolah_id !== (int) $sekolah->id) {
@@ -325,6 +328,8 @@ class LaporanController extends Controller
         if (! ($isAdmin || $isPenilai || $isGuru)) {
             abort(403, 'Anda tidak memiliki hak akses untuk mengunduh berkas laporan supervisi ini.');
         }
+
+        app(PenugasanService::class)->pastikanInstrumenLengkap($penugasan);
 
         $penugasan->loadMissing([
             'sekolah.kepalaSekolah',
@@ -404,6 +409,7 @@ class LaporanController extends Controller
      */
     public function exportKualitatifSupervisorPdf(Request $request, string $kode): Response|RedirectResponse
     {
+        @ini_set('memory_limit', '512M');
         $sekolah = Sekolah::where('kode', $kode)->with('kepalaSekolah')->firstOrFail();
         $user = $request->user();
 
@@ -491,6 +497,7 @@ class LaporanController extends Controller
      */
     public function exportKualitatifAdminPdf(Request $request, string $kode): Response
     {
+        @ini_set('memory_limit', '512M');
         $sekolah = Sekolah::where('kode', $kode)->with('kepalaSekolah')->firstOrFail();
 
         $periodeId = $request->query('periode_id');

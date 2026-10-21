@@ -108,9 +108,30 @@ class PenilaianService
                 $penilaian->status = 'draft';
             }
 
-            // Simpan skor dan catatan per butir
+            // Pada instrumen mandiri guru (pra_observasi, refleksi_pasca_observasi, rencana_pengembangan_diri),
+            // supervisor hanya berwenang mengisi Catatan Umum / Rekomendasi ($catatan) dan Rencana Tindak Lanjut Pembinaan ($tindakLanjut).
+            // Butir respon mandiri dan matriks rencana pengembangan diri hanya diisi oleh Guru dan tidak boleh ditimpa supervisor.
+            if ($penilaian->isDiisiMandiriGuru()) {
+                $penilaian->catatan = $catatan;
+                $penilaian->tindak_lanjut = $tindakLanjut;
+                $penilaian->diperbarui_oleh = $user?->id ?? $penilaian->penugasan?->penilai_id;
+                $penilaian->save();
+
+                return $penilaian;
+            }
+
+            $penilaian->loadMissing(['versiInstrumen.bagian.butir']);
+            $semuaButirMap = $penilaian->versiInstrumen?->bagian->flatMap->butir->keyBy('id') ?? collect();
+            $butirKuantitatifIds = $semuaButirMap->where('skor_maks', '>', 0)->pluck('id')->all();
+            $butirKualitatifIds = $semuaButirMap->where('skor_maks', 0)->pluck('id')->all();
+
+            $isTanpaNol = in_array($penilaian->jenisInstrumen?->kode, ['telaah_perencanaan', 'observasi_pembelajaran'], true);
+            $minSkor = $isTanpaNol ? 1 : 0;
+
+            // Simpan skor dan catatan per butir (hanya butir kuantitatif yang menyimpan skor)
             foreach ($skorButir as $butirId => $skor) {
-                if ($skor !== null && $skor !== '') {
+                $isKuantitatif = in_array((int) $butirId, $butirKuantitatifIds, true);
+                if ($isKuantitatif && $skor !== null && $skor !== '' && (int) $skor >= $minSkor) {
                     $penilaian->penilaianButir()->updateOrCreate(
                         ['butir_instrumen_id' => $butirId],
                         [
@@ -121,9 +142,12 @@ class PenilaianService
                 }
             }
 
-            // Simpan catatan per butir jika skor tidak ada (instrumen kualitatif)
+            // Simpan catatan per butir (untuk butir kualitatif atau yang belum memiliki skor)
             foreach ($catatanButir as $butirId => $teksCatatan) {
-                if (! isset($skorButir[$butirId]) || $skorButir[$butirId] === null || $skorButir[$butirId] === '') {
+                $isKualitatif = in_array((int) $butirId, $butirKualitatifIds, true);
+                $skorAda = isset($skorButir[$butirId]) && $skorButir[$butirId] !== null && $skorButir[$butirId] !== '';
+
+                if ($isKualitatif || ! $skorAda) {
                     if ($teksCatatan !== null && $teksCatatan !== '') {
                         $penilaian->penilaianButir()->updateOrCreate(
                             ['butir_instrumen_id' => $butirId],
@@ -134,6 +158,14 @@ class PenilaianService
                         );
                     }
                 }
+            }
+
+            // Bersihkan skor jika ada butir kualitatif yang sempat tersimpan dengan skor
+            if (! empty($butirKualitatifIds)) {
+                $penilaian->penilaianButir()
+                    ->whereIn('butir_instrumen_id', $butirKualitatifIds)
+                    ->whereNotNull('skor')
+                    ->update(['skor' => null]);
             }
 
             $penilaian->catatan = $catatan;
@@ -269,28 +301,50 @@ class PenilaianService
 
         // Ambil semua butir dari seluruh bagian versi instrumen ini
         $semuaButir = $versi->bagian->flatMap->butir;
+        $butirKuantitatif = $semuaButir->where('skor_maks', '>', 0);
         $isKuantitatif = $penilaian->isKuantitatif();
-        $skorMaks = (int) $semuaButir->sum('skor_maks');
+        $skorMaks = (int) $butirKuantitatif->sum('skor_maks');
 
         $jawabanMap = $penilaian->penilaianButir->keyBy('butir_instrumen_id');
 
         if ($isKuantitatif) {
-            if ($semuaButir->isEmpty() || $skorMaks <= 0) {
+            if ($butirKuantitatif->isEmpty() || $skorMaks <= 0) {
                 throw new DomainException('Instrumen kuantitatif belum memiliki butir penilaian yang valid.');
             }
 
-            // Validasi: seluruh butir wajib diisi skor (0 s/d 4)
+            // Validasi: seluruh butir kuantitatif wajib diisi skor (0 s/d skor_maks atau 1 s/d skor_maks)
+            $isTanpaNol = in_array($penilaian->jenisInstrumen?->kode, ['telaah_perencanaan', 'observasi_pembelajaran'], true);
+            $minSkor = $isTanpaNol ? 1 : 0;
+
             $butirBelumDiisi = [];
-            foreach ($semuaButir as $butir) {
+            foreach ($butirKuantitatif as $butir) {
                 $jawaban = $jawabanMap->get($butir->id);
-                if (! $jawaban || $jawaban->skor === null) {
+                if (! $jawaban || $jawaban->skor === null || (int) $jawaban->skor < $minSkor) {
                     $butirBelumDiisi[] = $butir->urutan;
                 }
             }
 
             if (! empty($butirBelumDiisi)) {
+                $pesanValidasi = $isTanpaNol
+                    ? 'Semua butir instrumen wajib diisi skor (1 s/d 4) sebelum melakukan finalisasi. Masih ada '.count($butirBelumDiisi).' butir yang belum diisi dengan benar.'
+                    : 'Semua butir instrumen wajib diisi sebelum melakukan finalisasi. Masih ada '.count($butirBelumDiisi).' butir yang belum diisi.';
+
                 throw ValidationException::withMessages([
-                    'butir' => 'Semua butir instrumen wajib diisi sebelum melakukan finalisasi. Masih ada '.count($butirBelumDiisi).' butir yang belum diisi.',
+                    'butir' => $pesanValidasi,
+                ]);
+            }
+        }
+
+        if ($penilaian->isDiisiMandiriGuru()) {
+            if (! $penilaian->isGuruSudahSubmit()) {
+                throw ValidationException::withMessages([
+                    'guru' => 'Instrumen belum dapat difinalisasi karena guru yang bersangkutan belum menyelesaikan dan menyerahkan isian mandirinya.',
+                ]);
+            }
+
+            if (empty(trim((string) $penilaian->catatan)) || empty(trim((string) $penilaian->tindak_lanjut))) {
+                throw ValidationException::withMessages([
+                    'catatan' => 'Kolom Catatan Umum / Rekomendasi Supervisor dan Rencana Tindak Lanjut Pembinaan wajib diisi sebelum finalisasi.',
                 ]);
             }
         }
@@ -299,6 +353,8 @@ class PenilaianService
             $penilaian,
             $isKuantitatif,
             $skorMaks,
+            $semuaButir,
+            $butirKuantitatif,
             $versi,
             $user,
             $ip
@@ -308,8 +364,20 @@ class PenilaianService
             $predikat = null;
 
             if ($isKuantitatif && $skorMaks > 0) {
-                $totalSkor = (int) $penilaian->penilaianButir()->sum('skor');
-                $nilai = round(($totalSkor / $skorMaks) * 100, 2);
+                // Pastikan butir kualitatif (skor_maks 0) tidak memiliki skor
+                $butirKualitatifIds = $semuaButir->where('skor_maks', 0)->pluck('id')->all();
+                if (! empty($butirKualitatifIds)) {
+                    $penilaian->penilaianButir()
+                        ->whereIn('butir_instrumen_id', $butirKualitatifIds)
+                        ->whereNotNull('skor')
+                        ->update(['skor' => null]);
+                }
+
+                $butirKuantitatifIds = $butirKuantitatif->pluck('id')->all();
+                $totalSkor = (int) $penilaian->penilaianButir()
+                    ->whereIn('butir_instrumen_id', $butirKuantitatifIds)
+                    ->sum('skor');
+                $nilai = round(min(100.0, ($totalSkor / $skorMaks) * 100), 2);
 
                 $ambang = $versi->ambang_predikat ?? ['A' => 86, 'B' => 76, 'C' => 56];
                 $predikat = $this->hitungPredikat($nilai, $ambang);

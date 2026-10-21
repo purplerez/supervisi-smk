@@ -101,7 +101,10 @@ class FormPenilaian extends Component
 
         // Isi form dengan data butir yang sudah tersimpan
         foreach ($this->penilaian->penilaianButir as $item) {
-            $this->skor[$item->butir_instrumen_id] = $item->skor;
+            // Butir kualitatif (skor_maks == 0) tidak memiliki skor numerik
+            if (! $item->butirInstrumen || (int) $item->butirInstrumen->skor_maks > 0) {
+                $this->skor[$item->butir_instrumen_id] = $item->skor;
+            }
             $this->catatanButir[$item->butir_instrumen_id] = $item->catatan;
         }
 
@@ -111,19 +114,10 @@ class FormPenilaian extends Component
             $this->buktiPengamatan = $this->dataKualitatif['bukti'];
         }
 
-        // Inisialisasi default matriks aksi rencana pengembangan diri jika kosong
+        // Matriks rencana pengembangan diri dimuat dari isian guru
         if ($this->penilaian->jenisInstrumen?->kode === 'rencana_pengembangan_diri') {
             if (empty($this->dataKualitatif['rencana']) || ! is_array($this->dataKualitatif['rencana'])) {
-                $this->dataKualitatif['rencana'] = [
-                    [
-                        'aktivitas' => '',
-                        'tujuan' => '',
-                        'ukuran' => '',
-                        'dukungan' => '',
-                        'waktu' => '',
-                        'status' => 'Rencana',
-                    ],
-                ];
+                $this->dataKualitatif['rencana'] = [];
             }
         }
 
@@ -136,7 +130,20 @@ class FormPenilaian extends Component
      */
     public function setSkor(int|string $butirId, int $skorValue): void
     {
-        if ($this->penilaian->isFinal()) {
+        if ($this->penilaian->isFinal() || $this->penilaian->isDiisiMandiriGuru()) {
+            return;
+        }
+
+        // Tolak pemberian skor pada butir kualitatif / non-skor (skor_maks === 0)
+        $versi = $this->penilaian->versiInstrumen;
+        $butir = $versi?->bagian->flatMap->butir->firstWhere('id', (int) $butirId);
+        if ($butir && (int) $butir->skor_maks === 0) {
+            return;
+        }
+
+        // Untuk telaah_perencanaan dan observasi_pembelajaran, skor bernilai 1 s/d 4 (poin 0 ditiadakan)
+        $kodeInstrumen = $this->penilaian->jenisInstrumen?->kode;
+        if (in_array($kodeInstrumen, ['telaah_perencanaan', 'observasi_pembelajaran'], true) && $skorValue < 1) {
             return;
         }
 
@@ -144,11 +151,12 @@ class FormPenilaian extends Component
     }
 
     /**
-     * Tambah baris baru pada matriks rencana aksi pengembangan diri.
+     * Tambah baris baru pada matriks rencana aksi pengembangan diri (hanya guru).
      */
     public function tambahBarisRencana(): void
     {
-        if ($this->penilaian->isFinal()) {
+        // Matriks hanya diisi oleh guru yang disupervisi
+        if ($this->penilaian->isFinal() || $this->penilaian->isDiisiMandiriGuru()) {
             return;
         }
 
@@ -163,11 +171,12 @@ class FormPenilaian extends Component
     }
 
     /**
-     * Hapus baris pada matriks rencana aksi pengembangan diri.
+     * Hapus baris pada matriks rencana aksi pengembangan diri (hanya guru).
      */
     public function hapusBarisRencana(int $index): void
     {
-        if ($this->penilaian->isFinal()) {
+        // Matriks hanya diisi oleh guru yang disupervisi
+        if ($this->penilaian->isFinal() || $this->penilaian->isDiisiMandiriGuru()) {
             return;
         }
 
@@ -241,8 +250,15 @@ class FormPenilaian extends Component
         }
 
         // Pada instrumen kolaboratif (pra-observasi, refleksi pasca, rencana pengembangan diri),
-        // supervisor wajib mengisi Catatan Umum dan Tindak Lanjut sebelum finalisasi
+        // guru wajib menyelesaikan dan menyerahkan isian mandirinya terlebih dahulu,
+        // dan supervisor wajib mengisi Catatan Umum dan Tindak Lanjut sebelum finalisasi
         if ($this->penilaian->isDiisiMandiriGuru()) {
+            if (! $this->penilaian->isGuruSudahSubmit()) {
+                session()->flash('galat', 'Instrumen belum dapat difinalisasi karena guru yang bersangkutan belum menyelesaikan dan menyerahkan isian mandirinya.');
+
+                return;
+            }
+
             if (empty(trim((string) $this->catatan)) || empty(trim((string) $this->tindakLanjut))) {
                 session()->flash('galat', 'Kolom Catatan Umum / Rekomendasi Supervisor dan Rencana Tindak Lanjut Pembinaan wajib diisi sebelum finalisasi.');
 
@@ -273,6 +289,12 @@ class FormPenilaian extends Component
         }
 
         if ($this->penilaian->isDiisiMandiriGuru()) {
+            if (! $this->penilaian->isGuruSudahSubmit()) {
+                session()->flash('galat', 'Instrumen belum dapat difinalisasi karena guru yang bersangkutan belum menyelesaikan dan menyerahkan isian mandirinya.');
+
+                return;
+            }
+
             if (empty(trim((string) $this->catatan)) || empty(trim((string) $this->tindakLanjut))) {
                 session()->flash('galat', 'Kolom Catatan Umum / Rekomendasi Supervisor dan Rencana Tindak Lanjut Pembinaan wajib diisi sebelum finalisasi.');
 
@@ -317,9 +339,17 @@ class FormPenilaian extends Component
     public function getJumlahTerisiProperty(): int
     {
         $jumlah = 0;
+        $versi = $this->penilaian->versiInstrumen;
+
         if ($this->penilaian->isKuantitatif()) {
-            foreach ($this->skor as $s) {
-                if ($s !== null && $s !== '') {
+            $isTanpaNol = in_array($this->penilaian->jenisInstrumen?->kode, ['telaah_perencanaan', 'observasi_pembelajaran'], true);
+            $minSkor = $isTanpaNol ? 1 : 0;
+            $butirKuantitatifIds = $versi
+                ? $versi->bagian->flatMap->butir->where('skor_maks', '>', 0)->pluck('id')->all()
+                : [];
+
+            foreach ($this->skor as $id => $s) {
+                if (in_array((int) $id, $butirKuantitatifIds, true) && $s !== null && $s !== '' && (int) $s >= $minSkor) {
                     $jumlah++;
                 }
             }
@@ -345,6 +375,89 @@ class FormPenilaian extends Component
         }
 
         return $versi->bagian->flatMap->butir->count();
+    }
+
+    /**
+     * Hitung total butir kuantitatif (yang ber-skor) pada versi instrumen ini.
+     */
+    public function getTotalButirKuantitatifProperty(): int
+    {
+        $versi = $this->penilaian->versiInstrumen;
+        if (! $versi) {
+            return 0;
+        }
+
+        return $versi->bagian->flatMap->butir->where('skor_maks', '>', 0)->count();
+    }
+
+    /**
+     * Hitung total skor perolehan saat ini dari butir-butir kuantitatif yang telah dipilih supervisor.
+     */
+    public function getSkorPerolehanProperty(): int
+    {
+        $versi = $this->penilaian->versiInstrumen;
+        $butirKuantitatifIds = $versi
+            ? $versi->bagian->flatMap->butir->where('skor_maks', '>', 0)->pluck('id')->all()
+            : null;
+
+        $total = 0;
+        foreach ($this->skor as $id => $s) {
+            if ($s !== null && $s !== '') {
+                if ($butirKuantitatifIds === null || in_array((int) $id, $butirKuantitatifIds, true)) {
+                    $total += (int) $s;
+                }
+            }
+        }
+
+        return $total;
+    }
+
+    /**
+     * Hitung total skor maksimal dari seluruh butir versi instrumen ini.
+     */
+    public function getSkorMaksimalProperty(): int
+    {
+        $versi = $this->penilaian->versiInstrumen;
+        if (! $versi) {
+            return 0;
+        }
+
+        return (int) $versi->bagian->flatMap->butir->sum('skor_maks');
+    }
+
+    /**
+     * Hitung nilai akhir berdasarkan rumus resmi: (skor perolehan / skor maksimal) * 100.
+     */
+    public function getNilaiAkhirHitunganProperty(): ?float
+    {
+        $skorMaks = $this->skorMaksimal;
+        if ($skorMaks <= 0) {
+            return null;
+        }
+
+        return round(min(100.0, ($this->skorPerolehan / $skorMaks) * 100), 2);
+    }
+
+    /**
+     * Tentukan estimasi predikat berdasarkan nilai akhir hitungan dan ambang versi instrumen.
+     */
+    public function getEstimasiPredikatProperty(): ?string
+    {
+        $nilai = $this->nilaiAkhirHitungan;
+        if ($nilai === null) {
+            return null;
+        }
+
+        $versi = $this->penilaian->versiInstrumen;
+        $ambang = $versi?->ambang_predikat ?? ['A' => 86, 'B' => 76, 'C' => 56];
+
+        foreach ($ambang as $huruf => $batas) {
+            if ($nilai >= (float) $batas) {
+                return $huruf;
+            }
+        }
+
+        return 'D';
     }
 
     public function render(): View

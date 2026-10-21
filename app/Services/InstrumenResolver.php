@@ -9,11 +9,12 @@ use App\Tenant\TenantContext;
 class InstrumenResolver
 {
     /**
-     * 5 Kode baku jenis instrumen supervisi resmi sesuai Kemendikdasmen / BBGTK Jatim.
+     * 6 Kode baku jenis instrumen supervisi resmi sesuai Kemendikdasmen / BBGTK Jatim.
      */
     public const KODE_STANDAR = [
         'pra_observasi' => 'Lembar Catatan Percakapan Pra-Observasi',
         'telaah_perencanaan' => 'Instrumen Telaah Perencanaan Pembelajaran',
+        'supervisi_perangkat' => 'Instrumen Supervisi Perangkat Pembelajaran Mendalam 2026',
         'observasi_pembelajaran' => 'Instrumen Observasi Pelaksanaan Pembelajaran',
         'refleksi_pasca_observasi' => 'Instrumen Refleksi Pasca Pembelajaran',
         'rencana_pengembangan_diri' => 'Lembar Rencana Pengembangan Diri Guru',

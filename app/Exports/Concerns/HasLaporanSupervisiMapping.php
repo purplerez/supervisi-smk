@@ -28,12 +28,15 @@ trait HasLaporanSupervisiMapping
             'Pra-Observasi',
             'Nilai Telaah Perencanaan',
             'Predikat Telaah Perencanaan',
+            'Nilai Supervisi Perangkat 2026',
+            'Predikat Supervisi Perangkat 2026',
             'Nilai Observasi KBM',
             'Predikat Observasi KBM',
             'Refleksi Pasca-Observasi',
             'Rencana Pengembangan Diri',
-            'Rata-rata Nilai',
-            'Jumlah Final (n/5)',
+            'Total Nilai',
+            'Predikat Akhir',
+            'Jumlah Final (n/6)',
             'Status',
         ];
     }
@@ -49,13 +52,14 @@ trait HasLaporanSupervisiMapping
     {
         $this->rowNumber++;
 
-        // Kelompokkan 5 penilaian berdasarkan kode jenis instrumen
+        // Kelompokkan 6 penilaian berdasarkan kode jenis instrumen
         $penilaianByKode = $penugasan->penilaian->keyBy(function ($p) {
             return $p->jenisInstrumen->kode ?? '';
         });
 
         $penPra = $penilaianByKode->get('pra_observasi');
         $penTelaah = $penilaianByKode->get('telaah_perencanaan');
+        $penSupervisi = $penilaianByKode->get('supervisi_perangkat');
         $penObs = $penilaianByKode->get('observasi_pembelajaran');
         $penRefleksi = $penilaianByKode->get('refleksi_pasca_observasi');
         $penRpd = $penilaianByKode->get('rencana_pengembangan_diri');
@@ -63,22 +67,20 @@ trait HasLaporanSupervisiMapping
         $statusPra = $penPra ? ($penPra->isFinal() ? 'Selesai' : ucfirst($penPra->status)) : '-';
         $nilaiTelaah = ($penTelaah && $penTelaah->isFinal()) ? (float) $penTelaah->nilai : '';
         $predikatTelaah = ($penTelaah && $penTelaah->isFinal()) ? (string) $penTelaah->predikat : '';
+        $nilaiSupervisi = ($penSupervisi && $penSupervisi->isFinal()) ? (float) $penSupervisi->nilai : '';
+        $predikatSupervisi = ($penSupervisi && $penSupervisi->isFinal()) ? (string) $penSupervisi->predikat : '';
         $nilaiObs = ($penObs && $penObs->isFinal()) ? (float) $penObs->nilai : '';
         $predikatObs = ($penObs && $penObs->isFinal()) ? (string) $penObs->predikat : '';
         $statusRefleksi = $penRefleksi ? ($penRefleksi->isFinal() ? 'Selesai' : ucfirst($penRefleksi->status)) : '-';
         $statusRpd = $penRpd ? ($penRpd->isFinal() ? 'Selesai' : ucfirst($penRpd->status)) : '-';
 
-        // Hitung rata-rata instrumen kuantitatif yang final dan progres final (n/5)
+        // Hitung total nilai (rata-rata instrumen kuantitatif final) dan progres final (n/6)
         $penilaianFinalList = $penugasan->penilaian->filter(fn ($p) => $p->isFinal());
         $finalCount = $penilaianFinalList->count();
-        $kuantitatifFinal = $penilaianFinalList->filter(fn ($p) => $p->nilai !== null);
+        $totalNilai = $penugasan->nilai_akhir !== null ? (float) $penugasan->nilai_akhir : '';
+        $predikatAkhir = $penugasan->predikat_akhir ?? '';
 
-        $rataRata = '';
-        if ($kuantitatifFinal->count() > 0) {
-            $rataRata = round($kuantitatifFinal->sum('nilai') / $kuantitatifFinal->count(), 2);
-        }
-
-        $totalCount = $penugasan->penilaian->count() ?: 5;
+        $totalCount = $penugasan->penilaian->count() ?: 6;
         $status = ($finalCount === $totalCount && $totalCount > 0) ? 'Selesai' : 'Belum Selesai';
 
         return [
@@ -89,11 +91,14 @@ trait HasLaporanSupervisiMapping
             $statusPra,
             $nilaiTelaah,
             $predikatTelaah,
+            $nilaiSupervisi,
+            $predikatSupervisi,
             $nilaiObs,
             $predikatObs,
             $statusRefleksi,
             $statusRpd,
-            $rataRata,
+            $totalNilai,
+            $predikatAkhir,
             "{$finalCount}/{$totalCount}",
             $status,
         ];
@@ -141,9 +146,9 @@ trait HasLaporanSupervisiMapping
                 ],
             ]);
 
-            // Center alignment untuk kolom No, Nilai, Predikat, n/4, dan Status
+            // Center alignment untuk kolom No, Nilai, Predikat, n/6, dan Status
             $sheet->getStyle("A2:A{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $sheet->getStyle("E2:O{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("E2:{$highestColumn}{$highestRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         }
 
         return [];

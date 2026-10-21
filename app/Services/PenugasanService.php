@@ -69,8 +69,8 @@ class PenugasanService
             $peringatan = [];
             $penugasanDibuat = [];
 
-            // 5 kode jenis instrumen wajib supervisi resmi sesuai Kemendikdasmen / BBGTK Jatim
-            $kodeInstrumen = ['pra_observasi', 'telaah_perencanaan', 'observasi_pembelajaran', 'refleksi_pasca_observasi', 'rencana_pengembangan_diri'];
+            // 6 kode jenis instrumen wajib supervisi resmi sesuai Kemendikdasmen / BBGTK Jatim
+            $kodeInstrumen = ['pra_observasi', 'telaah_perencanaan', 'supervisi_perangkat', 'observasi_pembelajaran', 'refleksi_pasca_observasi', 'rencana_pengembangan_diri'];
 
             // Siapkan pemetaan JenisInstrumen (sekolah atau global fallback)
             $mapJenis = [];
@@ -254,5 +254,44 @@ class PenugasanService
             }])
             ->orderBy('nama', 'asc')
             ->get();
+    }
+
+    /**
+     * Pastikan penugasan memiliki 6 instrumen resmi lengkap.
+     * Jika ada instrumen yang belum dibuat (misal penugasan dibuat sebelum penambahan instrumen baru),
+     * otomatis buat baris penilaian berstatus 'belum'.
+     */
+    public function pastikanInstrumenLengkap(Penugasan $penugasan): void
+    {
+        $kodeInstrumen = ['pra_observasi', 'telaah_perencanaan', 'supervisi_perangkat', 'observasi_pembelajaran', 'refleksi_pasca_observasi', 'rencana_pengembangan_diri'];
+
+        $existingKodes = $penugasan->penilaian()
+            ->with('jenisInstrumen')
+            ->get()
+            ->pluck('jenisInstrumen.kode')
+            ->filter()
+            ->all();
+
+        $missingKodes = array_diff($kodeInstrumen, $existingKodes);
+        if (empty($missingKodes)) {
+            return;
+        }
+
+        foreach ($missingKodes as $kode) {
+            $jenis = JenisInstrumen::milikSekolah()->where('kode', $kode)->first()
+                ?: JenisInstrumen::globalTemplate()->where('kode', $kode)->first();
+
+            if ($jenis) {
+                Penilaian::firstOrCreate([
+                    'sekolah_id' => $penugasan->sekolah_id,
+                    'penugasan_id' => $penugasan->id,
+                    'jenis_instrumen_id' => $jenis->id,
+                ], [
+                    'versi_instrumen_id' => null,
+                    'status' => 'belum',
+                    'jumlah_buka_kunci' => 0,
+                ]);
+            }
+        }
     }
 }

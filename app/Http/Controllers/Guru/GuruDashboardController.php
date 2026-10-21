@@ -9,6 +9,7 @@ use App\Models\Penilaian;
 use App\Models\Periode;
 use App\Models\Sekolah;
 use App\Services\GuruSupervisiService;
+use App\Services\PenugasanService;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -38,6 +39,7 @@ class GuruDashboardController extends Controller
             $penugasan = $this->guruSupervisiService->ambilPenugasanPeriodeAktif($guru);
 
             if ($penugasan) {
+                app(PenugasanService::class)->pastikanInstrumenLengkap($penugasan);
                 $progres = $this->guruSupervisiService->hitungProgresPenugasan($penugasan);
                 $canEdit = $penugasan->guruBisaUbahInfoDanJadwal();
             }
@@ -247,6 +249,7 @@ class GuruDashboardController extends Controller
             abort(404, 'Data penugasan supervisi Anda tidak ditemukan pada periode ini.');
         }
 
+        app(PenugasanService::class)->pastikanInstrumenLengkap($penugasan);
         $progres = $this->guruSupervisiService->hitungProgresPenugasan($penugasan);
 
         // Ambil daftar riwayat periode guru untuk navigasi tab antar periode

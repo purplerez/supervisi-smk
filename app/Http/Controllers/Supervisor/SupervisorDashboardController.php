@@ -8,6 +8,7 @@ use App\Models\Penugasan;
 use App\Models\Periode;
 use App\Models\Sekolah;
 use App\Services\PenilaianService;
+use App\Services\PenugasanService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -59,6 +60,8 @@ class SupervisorDashboardController extends Controller
         if ((int) $penugasan->penilai_id !== (int) $user->id) {
             abort(403, 'Anda tidak memiliki hak akses terhadap penugasan supervisi ini.');
         }
+
+        app(PenugasanService::class)->pastikanInstrumenLengkap($penugasan);
 
         $penugasan->load([
             'guru',

@@ -131,4 +131,58 @@ class Penugasan extends Model
 
         return ! $this->penilaian()->where('status', '!=', 'belum')->exists();
     }
+
+    /**
+     * Hitung rata-rata nilai instrumen kuantitatif yang telah difinalisasi.
+     */
+    public function hitungRataRataKuantitatif(): ?float
+    {
+        $penilaianKuantitatifFinal = $this->penilaian
+            ->filter(fn ($p) => $p->isFinal() && $p->isKuantitatif() && $p->nilai !== null);
+
+        if ($penilaianKuantitatifFinal->isEmpty()) {
+            return null;
+        }
+
+        return round((float) $penilaianKuantitatifFinal->avg('nilai'), 2);
+    }
+
+    /**
+     * Konversi nilai numerik ke predikat kinerja resmi supervisi:
+     * - 81 s/d 100: Diatas Ekspektasi
+     * - 51 s/d 80: Sesuai Ekspektasi
+     * - 30 s/d 50 (< 51): Dibawah Ekspektasi
+     */
+    public static function konversiPredikatKinerja(?float $nilai): ?string
+    {
+        if ($nilai === null) {
+            return null;
+        }
+
+        if ($nilai >= 81.0) {
+            return 'Diatas Ekspektasi';
+        }
+
+        if ($nilai >= 51.0) {
+            return 'Sesuai Ekspektasi';
+        }
+
+        return 'Dibawah Ekspektasi';
+    }
+
+    /**
+     * Accessor total nilai akhir (rata-rata instrumen kuantitatif final).
+     */
+    public function getNilaiAkhirAttribute(): ?float
+    {
+        return $this->hitungRataRataKuantitatif();
+    }
+
+    /**
+     * Accessor predikat akhir berdasarkan rata-rata instrumen kuantitatif.
+     */
+    public function getPredikatAkhirAttribute(): ?string
+    {
+        return self::konversiPredikatKinerja($this->nilai_akhir);
+    }
 }
