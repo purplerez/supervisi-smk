@@ -196,41 +196,41 @@ class DemoSeeder extends Seeder
         );
 
         // G. Penugasan & Variasi Penilaian
-        // 1. Guru 1 (dinilai Kepsek): Selesai (5/5 Final)
+        // 1. Guru 1 (dinilai Kepsek): Selesai (6/6 Final)
         $this->buatPenugasanDenganPenilaian(
             $sekolah, $periode, $guruList[0]['user'], $kepsek, $guruList[0]['mapel'], $instrumenSekolah,
-            statusPilihan: ['pra' => 'final', 'telaah' => 'final', 'obs' => 'final', 'refleksi' => 'final', 'rpd' => 'final']
+            statusPilihan: ['pra' => 'final', 'telaah' => 'final', 'perangkat' => 'final', 'obs' => 'final', 'refleksi' => 'final', 'rpd' => 'final']
         );
 
-        // 2. Guru 2 (dinilai Kepsek): Sedang Berjalan (2 Final, 2 Draft, 1 Belum)
+        // 2. Guru 2 (dinilai Kepsek): Sedang Berjalan (3 Final, 2 Draft, 1 Belum)
         $this->buatPenugasanDenganPenilaian(
             $sekolah, $periode, $guruList[1]['user'], $kepsek, $guruList[1]['mapel'], $instrumenSekolah,
-            statusPilihan: ['pra' => 'final', 'telaah' => 'final', 'obs' => 'draft', 'refleksi' => 'draft', 'rpd' => 'belum']
+            statusPilihan: ['pra' => 'final', 'telaah' => 'final', 'perangkat' => 'final', 'obs' => 'draft', 'refleksi' => 'draft', 'rpd' => 'belum']
         );
 
-        // 3. Guru 3 (dinilai SpvGuru): Sedang Direvisi (2 Final, 1 Direvisi, 2 Draft)
+        // 3. Guru 3 (dinilai SpvGuru): Sedang Direvisi (2 Final, 1 Direvisi, 3 Draft)
         $this->buatPenugasanDenganPenilaian(
             $sekolah, $periode, $guruList[2]['user'], $spvGuru, $guruList[2]['mapel'], $instrumenSekolah,
-            statusPilihan: ['pra' => 'final', 'telaah' => 'direvisi', 'obs' => 'final', 'refleksi' => 'draft', 'rpd' => 'draft'],
+            statusPilihan: ['pra' => 'final', 'telaah' => 'direvisi', 'perangkat' => 'draft', 'obs' => 'final', 'refleksi' => 'draft', 'rpd' => 'draft'],
             jumlahBukaKunci: 1
         );
 
-        // 4. Guru 4 (dinilai SpvGuru): Belum Dinilai (0/5 Belum)
+        // 4. Guru 4 (dinilai SpvGuru): Belum Dinilai (0/6 Belum)
         $this->buatPenugasanDenganPenilaian(
             $sekolah, $periode, $guruList[3]['user'], $spvGuru, $guruList[3]['mapel'], $instrumenSekolah,
-            statusPilihan: ['pra' => 'belum', 'telaah' => 'belum', 'obs' => 'belum', 'refleksi' => 'belum', 'rpd' => 'belum']
+            statusPilihan: ['pra' => 'belum', 'telaah' => 'belum', 'perangkat' => 'belum', 'obs' => 'belum', 'refleksi' => 'belum', 'rpd' => 'belum']
         );
 
-        // 5. Guru 5 (dinilai SpvGuru): Tahap Awal (1 Final Pra, 1 Draft Telaah, 3 Belum)
+        // 5. Guru 5 (dinilai SpvGuru): Tahap Awal (1 Final Pra, 1 Draft Telaah, 4 Belum)
         $this->buatPenugasanDenganPenilaian(
             $sekolah, $periode, $guruList[4]['user'], $spvGuru, $guruList[4]['mapel'], $instrumenSekolah,
-            statusPilihan: ['pra' => 'final', 'telaah' => 'draft', 'obs' => 'belum', 'refleksi' => 'belum', 'rpd' => 'belum']
+            statusPilihan: ['pra' => 'final', 'telaah' => 'draft', 'perangkat' => 'belum', 'obs' => 'belum', 'refleksi' => 'belum', 'rpd' => 'belum']
         );
 
-        // 6. Guru 6 (Supervisor 2 dinilai Kepsek): 3 Final, 1 Draft, 1 Belum
+        // 6. Guru 6 (Supervisor 2 dinilai Kepsek): 4 Final, 1 Draft, 1 Belum
         $this->buatPenugasanDenganPenilaian(
             $sekolah, $periode, $guruList[5]['user'], $kepsek, $guruList[5]['mapel'], $instrumenSekolah,
-            statusPilihan: ['pra' => 'final', 'telaah' => 'final', 'obs' => 'final', 'refleksi' => 'draft', 'rpd' => 'belum']
+            statusPilihan: ['pra' => 'final', 'telaah' => 'final', 'perangkat' => 'final', 'obs' => 'final', 'refleksi' => 'draft', 'rpd' => 'belum']
         );
 
         // H. Surat Tugas Supervisor
@@ -274,7 +274,7 @@ class DemoSeeder extends Seeder
      */
     private function buatInstrumenSekolah(Sekolah $sekolah): array
     {
-        $kodeList = ['pra_observasi', 'telaah_perencanaan', 'observasi_pembelajaran', 'refleksi_pasca_observasi', 'rencana_pengembangan_diri'];
+        $kodeList = ['pra_observasi', 'telaah_perencanaan', 'supervisi_perangkat', 'observasi_pembelajaran', 'refleksi_pasca_observasi', 'rencana_pengembangan_diri'];
         $hasil = [];
 
         foreach ($kodeList as $kode) {
@@ -299,7 +299,7 @@ class DemoSeeder extends Seeder
                 [
                     'status' => 'terbit',
                     'skor_maks_butir' => $templateGlobal?->versi?->first()?->skor_maks_butir ?? 0,
-                    'ambang_predikat' => ['A' => 86, 'B' => 76, 'C' => 56],
+                    'ambang_predikat' => $templateGlobal?->versi?->first()?->ambang_predikat ?? ['A' => 86, 'B' => 76, 'C' => 56],
                 ]
             );
 
@@ -343,7 +343,7 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * Buat penugasan, info supervisi, jadwal, dan 5 penilaian dengan status bervariasi.
+     * Buat penugasan, info supervisi, jadwal, dan 6 penilaian dengan status bervariasi.
      */
     private function buatPenugasanDenganPenilaian(
         Sekolah $sekolah,
@@ -374,11 +374,12 @@ class DemoSeeder extends Seeder
             ]
         );
 
-        // Jadwal & 5 Penilaian
-        $kodeList = ['pra_observasi', 'telaah_perencanaan', 'observasi_pembelajaran', 'refleksi_pasca_observasi', 'rencana_pengembangan_diri'];
+        // Jadwal & 6 Penilaian
+        $kodeList = ['pra_observasi', 'telaah_perencanaan', 'supervisi_perangkat', 'observasi_pembelajaran', 'refleksi_pasca_observasi', 'rencana_pengembangan_diri'];
         $statusKeyMap = [
             'pra_observasi' => 'pra',
             'telaah_perencanaan' => 'telaah',
+            'supervisi_perangkat' => 'perangkat',
             'observasi_pembelajaran' => 'obs',
             'refleksi_pasca_observasi' => 'refleksi',
             'rencana_pengembangan_diri' => 'rpd',
@@ -387,7 +388,7 @@ class DemoSeeder extends Seeder
         foreach ($kodeList as $i => $kode) {
             $dataInstrumen = $instrumenSekolah[$kode];
             $statusTarget = $statusPilihan[$statusKeyMap[$kode]] ?? 'belum';
-            $isKuantitatif = in_array($kode, ['telaah_perencanaan', 'observasi_pembelajaran'], true);
+            $isKuantitatif = in_array($kode, ['telaah_perencanaan', 'supervisi_perangkat', 'observasi_pembelajaran'], true);
 
             // Hitung skor maks dari butir kuantitatif
             $skorMaksTotal = $isKuantitatif ? collect($dataInstrumen['butir'])->sum('skor_maks') : null;

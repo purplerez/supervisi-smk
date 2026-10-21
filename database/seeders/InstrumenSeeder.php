@@ -174,11 +174,135 @@ class InstrumenSeeder extends Seeder
                 ],
             ],
 
-            // 3. OBSERVASI PELAKSANAAN PEMBELAJARAN
+            // 3. INSTRUMEN SUPERVISI PERANGKAT PEMBELAJARAN MENDALAM 2026
+            [
+                'kode' => 'supervisi_perangkat',
+                'nama' => 'Instrumen Supervisi Perangkat Pembelajaran Mendalam 2026',
+                'urutan' => 3,
+                'skor_maks_butir' => 2,
+                'ambang_predikat' => [
+                    'A' => 91,
+                    'B' => 81,
+                    'C' => 71,
+                ],
+                'bagian' => [
+                    [
+                        'kode' => 'ADMINISTRASI_PEMBELAJARAN',
+                        'judul' => 'Komponen Administrasi Pembelajaran',
+                        'urutan' => 1,
+                        'kategori' => 'Wajib',
+                        'butir' => [
+                            ['uraian' => '1. Kalender Pendidikan (Kaldik)', 'skor_maks' => 2],
+                            ['uraian' => '2. Rencana Pekan Efektif (RPE)', 'skor_maks' => 2],
+                            ['uraian' => '3. Jadwal Pelajaran', 'skor_maks' => 2],
+                            ['uraian' => '4. Analisis CP', 'skor_maks' => 2],
+                            ['uraian' => '5. Alur Tujuan Pembelajaran (ATP)', 'skor_maks' => 2],
+                            ['uraian' => '6. Program Tahunan (Prota)', 'skor_maks' => 2],
+                            ['uraian' => '7. Program Semester (Promes)', 'skor_maks' => 2],
+                        ],
+                    ],
+                    [
+                        'kode' => 'MODUL_AJAR_IDENTITAS',
+                        'judul' => 'Modul Ajar (Perencanaan Pembelajaran Mendalam) - a. Identitas',
+                        'urutan' => 2,
+                        'kategori' => 'Wajib',
+                        'butir' => [
+                            ['uraian' => 'a.1. Nama Sekolah', 'skor_maks' => 2],
+                            ['uraian' => 'a.2. Program Keahlian', 'skor_maks' => 2],
+                            ['uraian' => 'a.3. Konsentrasi Keahlian', 'skor_maks' => 2],
+                            ['uraian' => 'a.4. Mata Pelajaran', 'skor_maks' => 2],
+                            ['uraian' => 'a.5. Elemen', 'skor_maks' => 2],
+                            ['uraian' => 'a.6. Nama Guru', 'skor_maks' => 2],
+                            ['uraian' => 'a.7. Fase (Kelas)/Semester', 'skor_maks' => 2],
+                            ['uraian' => 'a.8. Alokasi Waktu', 'skor_maks' => 2],
+                        ],
+                    ],
+                    [
+                        'kode' => 'MODUL_AJAR_IDENTIFIKASI',
+                        'judul' => 'Modul Ajar (Perencanaan Pembelajaran Mendalam) - b. Identifikasi',
+                        'urutan' => 3,
+                        'kategori' => 'Wajib',
+                        'butir' => [
+                            ['uraian' => 'b.1. Karakteristik Siswa', 'skor_maks' => 2],
+                            ['uraian' => 'b.2. Karakteristik Mata Pelajaran', 'skor_maks' => 2],
+                            ['uraian' => 'b.3. Dimensi Profil Lulusan', 'skor_maks' => 2],
+                        ],
+                    ],
+                    [
+                        'kode' => 'MODUL_AJAR_DESAIN',
+                        'judul' => 'Modul Ajar (Perencanaan Pembelajaran Mendalam) - c. Desain Pembelajaran',
+                        'urutan' => 4,
+                        'kategori' => 'Wajib',
+                        'butir' => [
+                            ['uraian' => 'c.1. Capaian Pembelajaran', 'skor_maks' => 2],
+                            ['uraian' => 'c.2. Lintas Disiplin Ilmu', 'skor_maks' => 2],
+                            ['uraian' => 'c.3. Tujuan Pembelajaran', 'skor_maks' => 2],
+                            ['uraian' => 'c.4. Topik Pembelajaran', 'skor_maks' => 2],
+                            ['uraian' => 'c.5. Praktik Pedagogis', 'skor_maks' => 2],
+                            ['uraian' => 'c.6. Kemitraan Pembelajaran', 'skor_maks' => 2],
+                            ['uraian' => 'c.7. Lingkungan Pembelajaran', 'skor_maks' => 2],
+                            ['uraian' => 'c.8. Pemanfaatan Digital', 'skor_maks' => 2],
+                        ],
+                    ],
+                    [
+                        'kode' => 'MODUL_AJAR_PENGALAMAN',
+                        'judul' => 'Modul Ajar (Perencanaan Pembelajaran Mendalam) - d. Pengalaman Belajar',
+                        'urutan' => 5,
+                        'kategori' => 'Wajib',
+                        'butir' => [
+                            ['uraian' => 'd.1. Langkah Awal', 'skor_maks' => 2],
+                            ['uraian' => 'd.2. Langkah Inti Memahami', 'skor_maks' => 2],
+                            ['uraian' => 'd.3. Langkah Inti Mengaplikasi', 'skor_maks' => 2],
+                            ['uraian' => 'd.4. Langkah Inti Merefleksi', 'skor_maks' => 2],
+                            ['uraian' => 'd.5. Langkah Penutup', 'skor_maks' => 2],
+                        ],
+                    ],
+                    [
+                        'kode' => 'MODUL_AJAR_ASESMEN',
+                        'judul' => 'Modul Ajar (Perencanaan Pembelajaran Mendalam) - e. Asesmen Pembelajaran',
+                        'urutan' => 6,
+                        'kategori' => 'Wajib',
+                        'butir' => [
+                            ['uraian' => 'e.1. Asesmen Diagnostik', 'skor_maks' => 2],
+                            ['uraian' => 'e.2. Asesmen Formatif', 'skor_maks' => 2],
+                            ['uraian' => 'e.3. Asesmen Sumatif', 'skor_maks' => 2],
+                        ],
+                    ],
+                    [
+                        'kode' => 'MODUL_AJAR_LAMPIRAN',
+                        'judul' => 'Modul Ajar (Perencanaan Pembelajaran Mendalam) - Lampiran & Dokumen Pendukung',
+                        'urutan' => 7,
+                        'kategori' => 'Wajib',
+                        'butir' => [
+                            ['uraian' => 'f. Pengesahan Guru dan KS', 'skor_maks' => 2],
+                            ['uraian' => 'g. Glosarium', 'skor_maks' => 2],
+                            ['uraian' => 'h. Bahan Bacaan Guru dan Murid', 'skor_maks' => 2],
+                            ['uraian' => 'i. Jobsheet', 'skor_maks' => 2],
+                            ['uraian' => 'j. Rubrik dan Instrumen Asesmen', 'skor_maks' => 2],
+                            ['uraian' => 'k. Lembar Refleksi Guru dan Murid', 'skor_maks' => 2],
+                            ['uraian' => 'l. Daftar Pustaka', 'skor_maks' => 2],
+                        ],
+                    ],
+                    [
+                        'kode' => 'ADMINISTRASI_PELAKSANAAN',
+                        'judul' => 'Administrasi Pelaksanaan & Penilaian Pembelajaran',
+                        'urutan' => 8,
+                        'kategori' => 'Wajib',
+                        'butir' => [
+                            ['uraian' => '9. KKTP', 'skor_maks' => 2],
+                            ['uraian' => '10. Presensi', 'skor_maks' => 2],
+                            ['uraian' => '11. Daftar Nilai', 'skor_maks' => 2],
+                            ['uraian' => '12. Jurnal Mengajar', 'skor_maks' => 2],
+                        ],
+                    ],
+                ],
+            ],
+
+            // 4. OBSERVASI PELAKSANAAN PEMBELAJARAN
             [
                 'kode' => 'observasi_pembelajaran',
                 'nama' => 'Instrumen Observasi Pelaksanaan Pembelajaran',
-                'urutan' => 3,
+                'urutan' => 4,
                 'skor_maks_butir' => 4,
                 'bagian' => [
                     [
@@ -296,11 +420,11 @@ class InstrumenSeeder extends Seeder
                 ],
             ],
 
-            // 4. REFLEKSI PASCA OBSERVASI
+            // 5. REFLEKSI PASCA OBSERVASI
             [
                 'kode' => 'refleksi_pasca_observasi',
                 'nama' => 'Instrumen Refleksi Pasca Pembelajaran',
-                'urutan' => 4,
+                'urutan' => 5,
                 'skor_maks_butir' => 0,
                 'bagian' => [
                     [
@@ -426,11 +550,11 @@ class InstrumenSeeder extends Seeder
                 ],
             ],
 
-            // 5. RENCANA PENGEMBANGAN DIRI
+            // 6. RENCANA PENGEMBANGAN DIRI
             [
                 'kode' => 'rencana_pengembangan_diri',
                 'nama' => 'Lembar Rencana Pengembangan Diri Guru',
-                'urutan' => 5,
+                'urutan' => 6,
                 'skor_maks_butir' => 0,
                 'bagian' => [
                     [
@@ -492,27 +616,25 @@ class InstrumenSeeder extends Seeder
                 ->where('nomor_versi', 1)
                 ->first();
 
+            $ambangPredikat = $d['ambang_predikat'] ?? [
+                'A' => 86,
+                'B' => 76,
+                'C' => 56,
+            ];
+
             if (! $versi) {
                 $versi = VersiInstrumen::create([
                     'jenis_instrumen_id' => $jenis->id,
                     'nomor_versi' => 1,
                     'status' => 'terbit',
                     'skor_maks_butir' => $d['skor_maks_butir'],
-                    'ambang_predikat' => [
-                        'A' => 86,
-                        'B' => 76,
-                        'C' => 56,
-                    ],
+                    'ambang_predikat' => $ambangPredikat,
                 ]);
             } else {
                 $versi->update([
                     'status' => 'terbit',
                     'skor_maks_butir' => $d['skor_maks_butir'],
-                    'ambang_predikat' => [
-                        'A' => 86,
-                        'B' => 76,
-                        'C' => 56,
-                    ],
+                    'ambang_predikat' => $ambangPredikat,
                 ]);
             }
 
