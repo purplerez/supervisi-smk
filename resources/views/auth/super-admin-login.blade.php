@@ -8,8 +8,9 @@
     @livewireStyles
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-full flex flex-col justify-center py-12 sm:px-6 lg:px-8 antialiased" style="background-color: var(--color-cream);">
-    <div class="sm:mx-auto sm:w-full sm:max-w-md px-4">
+<body class="min-h-full flex flex-col justify-between antialiased" style="background-color: var(--color-cream);">
+    <div class="flex-1 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div class="sm:mx-auto sm:w-full sm:max-w-md px-4">
         {{-- Header Super Admin --}}
         <div class="text-center mb-6">
             <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl shadow-sm mb-4"
@@ -90,6 +91,10 @@
             </form>
         </div>
     </div>
+    </div>
+
+    <x-footer container-class="max-w-4xl" />
+
     @livewireScripts
 </body>
 </html>

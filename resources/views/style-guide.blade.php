@@ -346,5 +346,7 @@
 
 </div>
 
+<x-footer container-class="max-w-6xl" />
+
 </body>
 </html>

@@ -292,17 +292,11 @@
     </main>
 
     {{-- Footer --}}
-    <footer class="w-full py-6 text-center text-xs text-[#5B6475] border-t"
-            style="border-color: var(--color-border, #E8E0D2); background-color: #FFFFFF;">
-        <div class="max-w-4xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <span>&copy; {{ date('Y') }} Kebun Kode . PPLG SMKN 1 Banyuwangi</span>
-            <div class="flex items-center gap-4">
-                <a href="{{ route('super-admin.login') }}" class="text-[#5B6475] hover:text-[#253C6D] underline">
-                    Login Administrator Sistem
-                </a>
-            </div>
-        </div>
-    </footer>
+    <x-footer container-class="max-w-4xl">
+        <a href="{{ route('super-admin.login') }}" class="text-[#5B6475] hover:text-[#253C6D] underline">
+            Login Administrator Sistem
+        </a>
+    </x-footer>
 
     @livewireScripts
 </body>

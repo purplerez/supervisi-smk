@@ -270,11 +270,11 @@
 
         {{-- ===== KONTEN UTAMA ===== --}}
         <main
-            class="flex-1 min-w-0 md:ml-64"
+            class="flex-1 min-w-0 md:ml-64 flex flex-col min-h-[calc(100vh-64px)]"
             id="main-content"
             tabindex="-1"
         >
-            <div class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+            <div class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto flex-1 w-full">
                 {{-- Flash messages --}}
                 @if(session('sukses'))
                     <x-alert-banner type="sukses" class="mb-4">{{ session('sukses') }}</x-alert-banner>
@@ -288,6 +288,8 @@
 
                 {{ $slot }}
             </div>
+
+            <x-footer />
         </main>
     </div>
 </div>
