@@ -103,6 +103,9 @@ class GuruImportController extends Controller
      */
     public function confirm(Request $request, string $kode): RedirectResponse
     {
+        @ini_set('max_execution_time', '300');
+        @set_time_limit(300);
+
         $tempPath = session('import_temp_file');
         $originalName = session('import_original_name');
 

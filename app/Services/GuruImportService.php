@@ -18,11 +18,16 @@ class GuruImportService
      */
     public function validasiDanPratinjau(string $filePathDiskPrivate, int $sekolahId): array
     {
+        @ini_set('max_execution_time', '300');
+        @set_time_limit(300);
+
         $parser = new GuruImportParser;
         Excel::import($parser, $filePathDiskPrivate, 'private');
 
         $rows = $parser->rows;
-        $existingUsers = User::where('sekolah_id', $sekolahId)->get()->keyBy('username');
+        $existingUsers = User::where('sekolah_id', $sekolahId)
+            ->get()
+            ->keyBy(fn ($u) => strtolower($u->username));
 
         $totalBaris = count($rows);
         $jumlahBaru = 0;
@@ -67,7 +72,8 @@ class GuruImportService
             }
 
             // Cek apakah akun lama atau baru
-            $isAkunLama = $username !== '' && $existingUsers->has($username);
+            $usernameLower = strtolower($username);
+            $isAkunLama = $username !== '' && $existingUsers->has($usernameLower);
 
             $statusAkun = $isAkunLama ? 'update' : 'baru';
             $catatanPassword = '';
@@ -130,120 +136,148 @@ class GuruImportService
      */
     public function prosesImpor(string $filePathDiskPrivate, int $sekolahId, int $userId, string $originalFileName): ImportBatch
     {
+        @ini_set('max_execution_time', '300');
+        @set_time_limit(300);
+
         $parser = new GuruImportParser;
         Excel::import($parser, $filePathDiskPrivate, 'private');
 
         $rows = $parser->rows;
-        $existingUsers = User::where('sekolah_id', $sekolahId)->get()->keyBy('username');
+        $existingUsers = User::where('sekolah_id', $sekolahId)
+            ->get()
+            ->keyBy(fn ($u) => strtolower($u->username));
 
         $sukses = 0;
         $gagal = 0;
         $errors = [];
         $seenUsernames = [];
+        $passwordHashCache = [];
 
-        foreach ($rows as $index => $row) {
-            $nomorBaris = $index + 2;
+        $batch = (new User)->getConnection()->transaction(function () use (
+            $rows,
+            $existingUsers,
+            $sekolahId,
+            $userId,
+            $originalFileName,
+            &$sukses,
+            &$gagal,
+            &$errors,
+            &$seenUsernames,
+            &$passwordHashCache
+        ) {
+            foreach ($rows as $index => $row) {
+                $nomorBaris = $index + 2;
 
-            $nama = isset($row['nama']) ? trim((string) $row['nama']) : '';
-            $username = isset($row['username']) ? trim((string) $row['username']) : '';
-            $email = isset($row['email']) ? trim((string) $row['email']) : '';
-            $nip = isset($row['nip']) ? trim((string) $row['nip']) : '';
-            $nuptk = isset($row['nuptk']) ? trim((string) $row['nuptk']) : '';
-            $password = isset($row['password']) ? (string) $row['password'] : '';
+                $nama = isset($row['nama']) ? trim((string) $row['nama']) : '';
+                $username = isset($row['username']) ? trim((string) $row['username']) : '';
+                $email = isset($row['email']) ? trim((string) $row['email']) : '';
+                $nip = isset($row['nip']) ? trim((string) $row['nip']) : '';
+                $nuptk = isset($row['nuptk']) ? trim((string) $row['nuptk']) : '';
+                $password = isset($row['password']) ? (string) $row['password'] : '';
 
-            $barisGalat = [];
+                $barisGalat = [];
 
-            if ($nama === '') {
-                $barisGalat[] = 'Nama wajib diisi.';
-            }
+                if ($nama === '') {
+                    $barisGalat[] = 'Nama wajib diisi.';
+                }
 
-            if ($username === '') {
-                $barisGalat[] = 'Username wajib diisi.';
-            } elseif (preg_match('/\s/', $username)) {
-                $barisGalat[] = 'Username tidak boleh mengandung spasi.';
-            } elseif (in_array(strtolower($username), $seenUsernames, true)) {
-                $barisGalat[] = 'Username duplikat dalam file.';
-            } else {
-                $seenUsernames[] = strtolower($username);
-            }
+                if ($username === '') {
+                    $barisGalat[] = 'Username wajib diisi.';
+                } elseif (preg_match('/\s/', $username)) {
+                    $barisGalat[] = 'Username tidak boleh mengandung spasi.';
+                } elseif (in_array(strtolower($username), $seenUsernames, true)) {
+                    $barisGalat[] = 'Username duplikat dalam file.';
+                } else {
+                    $seenUsernames[] = strtolower($username);
+                }
 
-            if ($email !== '' && ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $barisGalat[] = 'Format email tidak valid.';
-            }
+                if ($email !== '' && ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $barisGalat[] = 'Format email tidak valid.';
+                }
 
-            $isAkunLama = $username !== '' && $existingUsers->has($username);
+                $usernameLower = strtolower($username);
+                $isAkunLama = $username !== '' && $existingUsers->has($usernameLower);
 
-            if (! $isAkunLama) {
-                if ($password === '') {
-                    $barisGalat[] = 'Password wajib diisi untuk akun baru.';
-                } elseif (strlen($password) < 8) {
-                    $barisGalat[] = 'Password untuk akun baru minimal 8 karakter.';
+                if (! $isAkunLama) {
+                    if ($password === '') {
+                        $barisGalat[] = 'Password wajib diisi untuk akun baru.';
+                    } elseif (strlen($password) < 8) {
+                        $barisGalat[] = 'Password untuk akun baru minimal 8 karakter.';
+                    }
+                }
+
+                // Jika ada galat, catat kegagalan tanpa password
+                if (count($barisGalat) > 0) {
+                    $gagal++;
+                    $errors[] = [
+                        'baris' => $nomorBaris,
+                        'username' => $username,
+                        'pesan' => implode(' ', $barisGalat),
+                    ];
+
+                    continue;
+                }
+
+                if ($isAkunLama) {
+                    // ATURAN IMPOR ULANG:
+                    // Hanya nama, email, NIP, NUPTK yang diperbarui.
+                    // Password dan role TIDAK PERNAH DITIMPA.
+                    /** @var User $akunLama */
+                    $akunLama = $existingUsers->get($usernameLower);
+                    $akunLama->update([
+                        'nama' => $nama,
+                        'email' => $email !== '' ? $email : null,
+                        'nip' => $nip !== '' ? $nip : null,
+                        'nuptk' => $nuptk !== '' ? $nuptk : null,
+                    ]);
+
+                    $sukses++;
+                } else {
+                    // Cache hash password untuk menghemat waktu komputasi Bcrypt secara signifikan
+                    // pada shared hosting saat banyak akun menggunakan password awal yang sama
+                    if (! isset($passwordHashCache[$password])) {
+                        $passwordHashCache[$password] = Hash::make($password);
+                    }
+
+                    // Akun baru: buat akun dengan role guru dan must_change_password = true
+                    $akunBaru = User::create([
+                        'sekolah_id' => $sekolahId,
+                        'nama' => $nama,
+                        'username' => $username,
+                        'email' => $email !== '' ? $email : null,
+                        'nip' => $nip !== '' ? $nip : null,
+                        'nuptk' => $nuptk !== '' ? $nuptk : null,
+                        'password' => $passwordHashCache[$password],
+                        'must_change_password' => true,
+                        'aktif' => true,
+                        'is_super_admin' => false,
+                    ]);
+
+                    $akunBaru->assignRole('guru');
+                    $sukses++;
                 }
             }
 
-            // Jika ada galat, catat kegagalan tanpa password
-            if (count($barisGalat) > 0) {
-                $gagal++;
-                $errors[] = [
-                    'baris' => $nomorBaris,
-                    'username' => $username,
-                    'pesan' => implode(' ', $barisGalat),
-                ];
+            $status = $gagal === 0 ? 'sukses' : ($sukses > 0 ? 'sebagian' : 'gagal');
 
-                continue;
-            }
-
-            if ($isAkunLama) {
-                // ATURAN IMPOR ULANG:
-                // Hanya nama, email, NIP, NUPTK yang diperbarui.
-                // Password dan role TIDAK PERNAH DITIMPA.
-                /** @var User $akunLama */
-                $akunLama = $existingUsers->get($username);
-                $akunLama->update([
-                    'nama' => $nama,
-                    'email' => $email !== '' ? $email : null,
-                    'nip' => $nip !== '' ? $nip : null,
-                    'nuptk' => $nuptk !== '' ? $nuptk : null,
-                ]);
-
-                $sukses++;
-            } else {
-                // Akun baru: buat akun dengan role guru dan must_change_password = true
-                $akunBaru = User::create([
-                    'sekolah_id' => $sekolahId,
-                    'nama' => $nama,
-                    'username' => $username,
-                    'email' => $email !== '' ? $email : null,
-                    'nip' => $nip !== '' ? $nip : null,
-                    'nuptk' => $nuptk !== '' ? $nuptk : null,
-                    'password' => Hash::make($password),
-                    'must_change_password' => true,
-                    'aktif' => true,
-                    'is_super_admin' => false,
-                ]);
-
-                $akunBaru->assignRole('guru');
-                $sukses++;
-            }
-        }
+            // Catat riwayat batch impor
+            return ImportBatch::create([
+                'sekolah_id' => $sekolahId,
+                'user_id' => $userId,
+                'nama_file' => $originalFileName,
+                'total' => count($rows),
+                'sukses' => $sukses,
+                'gagal' => $gagal,
+                'errors' => count($errors) > 0 ? $errors : null,
+                'status' => $status,
+            ]);
+        });
 
         // Hapus file unggahan sementara dari disk privat
         if (Storage::disk('private')->exists($filePathDiskPrivate)) {
             Storage::disk('private')->delete($filePathDiskPrivate);
         }
 
-        $status = $gagal === 0 ? 'sukses' : ($sukses > 0 ? 'sebagian' : 'gagal');
-
-        // Catat riwayat batch impor
-        return ImportBatch::create([
-            'sekolah_id' => $sekolahId,
-            'user_id' => $userId,
-            'nama_file' => $originalFileName,
-            'total' => count($rows),
-            'sukses' => $sukses,
-            'gagal' => $gagal,
-            'errors' => count($errors) > 0 ? $errors : null,
-            'status' => $status,
-        ]);
+        return $batch;
     }
 }
