@@ -95,18 +95,21 @@ class PenugasanController extends Controller
                 $request->validated('guru_ids')
             );
         } catch (ValidationException $e) {
-            return back()->withInput()->with('galat', $e->getMessage());
+            $pesan = collect($e->errors())->flatten()->first() ?: $e->getMessage();
+
+            return back()->withInput()->withErrors($e->errors())->with('galat', $pesan);
         } catch (DomainException $e) {
             return back()->withInput()->with('galat', $e->getMessage());
         }
 
         $jumlah = count($hasil['penugasan']);
-        $pesanSukses = "Berhasil membuat penugasan untuk {$jumlah} guru beserta 4 baris penilaian supervisi otomatis.";
+        $pesanSukses = "Berhasil mendaftarkan {$jumlah} guru kepada supervisor penilai.";
 
-        $redirect = redirect()->route('admin.penugasan.index', [
-            'kode' => $sekolah->kode,
-            'periode_id' => $periode->id,
-        ])->with('sukses', $pesanSukses);
+        $redirectRoute = $request->input('redirect_to') === 'dashboard'
+            ? route('dashboard.admin', ['kode' => $sekolah->kode, 'periode_id' => $periode->id])
+            : route('admin.penugasan.index', ['kode' => $sekolah->kode, 'periode_id' => $periode->id]);
+
+        $redirect = redirect($redirectRoute)->with('sukses', $pesanSukses);
 
         // Jika terjadi saling menilai, tampilkan peringatan
         if (! empty($hasil['peringatan'])) {
