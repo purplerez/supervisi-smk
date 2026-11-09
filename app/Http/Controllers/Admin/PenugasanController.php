@@ -170,6 +170,84 @@ class PenugasanController extends Controller
     }
 
     /**
+     * Halaman form daftarkan guru ke supervisor.
+     */
+    public function formDaftarkan(Request $request, string $kode): View
+    {
+        $sekolah = Sekolah::where('kode', $kode)->firstOrFail();
+
+        $semuaPeriode = Periode::orderByDesc('tanggal_mulai')->get();
+        $periodeId = $request->query('periode_id');
+        $periode = null;
+
+        if ($periodeId) {
+            $periode = Periode::find($periodeId);
+        }
+
+        if (! $periode) {
+            $periode = Periode::where('status', 'aktif')->first() ?: $semuaPeriode->first();
+        }
+
+        $supervisors = collect();
+        $guruBelum = collect();
+
+        if ($periode) {
+            $supervisors = User::where('aktif', true)
+                ->whereHas('roles', fn ($q) => $q->where('role', 'supervisor'))
+                ->orderBy('nama', 'asc')
+                ->get();
+
+            $guruBelum = $this->periodeService->guruBelumPunyaPenilai($periode);
+        }
+
+        return view('admin.penugasan.daftarkan', compact(
+            'sekolah',
+            'semuaPeriode',
+            'periode',
+            'supervisors',
+            'guruBelum',
+        ));
+    }
+
+    /**
+     * Simpan penugasan dari halaman daftarkan.
+     */
+    public function storeDaftarkan(StorePenugasanRequest $request, string $kode): RedirectResponse
+    {
+        $sekolah = Sekolah::where('kode', $kode)->firstOrFail();
+        $periode = Periode::where('id', $request->validated('periode_id'))
+            ->where('sekolah_id', $sekolah->id)
+            ->firstOrFail();
+
+        try {
+            $hasil = $this->penugasanService->buatPenugasan(
+                $periode,
+                (int) $request->validated('penilai_id'),
+                $request->validated('guru_ids')
+            );
+        } catch (ValidationException $e) {
+            $pesan = collect($e->errors())->flatten()->first() ?: $e->getMessage();
+
+            return back()->withInput()->withErrors($e->errors())->with('galat', $pesan);
+        } catch (DomainException $e) {
+            return back()->withInput()->with('galat', $e->getMessage());
+        }
+
+        $jumlah = count($hasil['penugasan']);
+        $pesanSukses = "Berhasil mendaftarkan {$jumlah} guru kepada supervisor penilai.";
+
+        $redirect = redirect()
+            ->route('admin.penugasan.daftarkan', ['kode' => $sekolah->kode, 'periode_id' => $periode->id])
+            ->with('sukses', $pesanSukses);
+
+        if (! empty($hasil['peringatan'])) {
+            $redirect->with('peringatan', implode(' ', $hasil['peringatan']));
+        }
+
+        return $redirect;
+    }
+
+    /**
      * Halaman daftar guru yang belum memiliki penilai pada periode terpilih.
      */
     public function belumPunyaPenilai(Request $request, string $kode): View

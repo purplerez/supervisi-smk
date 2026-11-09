@@ -7,17 +7,12 @@ use App\Models\Penugasan;
 use App\Models\Periode;
 use App\Models\Sekolah;
 use App\Models\User;
-use App\Services\PeriodeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function __construct(
-        private readonly PeriodeService $periodeService,
-    ) {}
-
     /**
      * Halaman Dasbor Admin Sekolah.
      */
@@ -59,8 +54,6 @@ class DashboardController extends Controller
             'belum' => 0,
             'total' => 0,
         ];
-        $supervisors = collect();
-        $guruBelumList = collect();
 
         if ($periode) {
             $semuaPenugasan = Penugasan::where('periode_id', $periode->id)
@@ -100,13 +93,6 @@ class DashboardController extends Controller
                 'total' => $penilaianSemua->count(),
             ];
 
-            // Data untuk form pendaftaran guru ke supervisor
-            $supervisors = User::where('aktif', true)
-                ->whereHas('roles', fn ($q) => $q->where('role', 'supervisor'))
-                ->orderBy('nama', 'asc')
-                ->get();
-
-            $guruBelumList = $this->periodeService->guruBelumPunyaPenilai($periode);
         }
 
         return view('dashboard.admin', [
@@ -123,8 +109,6 @@ class DashboardController extends Controller
             'persenKetuntasan' => $persenKetuntasan,
             'persenPenugasan' => $persenPenugasan,
             'rekapPenilaian' => $rekapPenilaian,
-            'supervisors' => $supervisors,
-            'guruBelumList' => $guruBelumList,
         ]);
     }
 

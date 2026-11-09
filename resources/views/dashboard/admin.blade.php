@@ -169,9 +169,14 @@
                     </x-button>
 
                     @if($totalGuruBelum > 0)
-                        <x-button variant="outline" :href="route('admin.penugasan.belum-dinilai', ['kode' => $sekolah->kode, 'periode_id' => $periode->id])" class="text-xs py-2">
-                            Lihat Guru Belum Dinilai ({{ $totalGuruBelum }}) &rarr;
-                        </x-button>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <x-button variant="tambah" :href="route('admin.penugasan.daftarkan', ['kode' => $sekolah->kode, 'periode_id' => $periode->id])" class="text-xs py-2">
+                                Daftarkan Guru &rarr;
+                            </x-button>
+                            <x-button variant="outline" :href="route('admin.penugasan.belum-dinilai', ['kode' => $sekolah->kode, 'periode_id' => $periode->id])" class="text-xs py-2">
+                                Belum Punya Penilai ({{ $totalGuruBelum }}) &rarr;
+                            </x-button>
+                        </div>
                     @endif
                 </div>
             </x-card>
@@ -225,124 +230,6 @@
                 </div>
             </x-card>
         </div>
-
-        {{-- 3. FORM DAFTARKAN GURU KE SUPERVISOR --}}
-        @if($guruBelumList->isNotEmpty() && $supervisors->isNotEmpty())
-            <div id="daftar-guru-supervisor" class="mb-8 scroll-mt-20">
-                <x-card class="p-6 border" style="border-color: var(--color-border);">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 mb-5 border-b" style="border-color: var(--color-border);">
-                        <div>
-                            <h2 class="text-base font-bold" style="color: var(--color-navy-900);">
-                                Daftarkan Guru ke Supervisor Penilai
-                            </h2>
-                            <p class="text-xs text-gray-500 mt-0.5">
-                                Pilih supervisor, centang guru yang akan didaftarkan, lalu simpan.
-                            </p>
-                        </div>
-                        <span class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-orange-100 text-orange-800">
-                            {{ $guruBelumList->count() }} guru belum memiliki penilai
-                        </span>
-                    </div>
-
-                    @if(session('sukses'))
-                        <div class="mb-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-sm text-emerald-800 font-medium">
-                            {{ session('sukses') }}
-                        </div>
-                    @endif
-                    @if(session('galat') || $errors->any())
-                        <div class="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-800 font-medium">
-                            {{ session('galat') ?? $errors->first() }}
-                        </div>
-                    @endif
-                    @if(session('peringatan'))
-                        <div class="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800 font-medium">
-                            {{ session('peringatan') }}
-                        </div>
-                    @endif
-
-                    <form method="POST" action="{{ route('admin.penugasan.store', ['kode' => $sekolah->kode]) }}" x-data="{ pilihSemua: false }" @submit.prevent="$el.submit()">
-                        @csrf
-                        <input type="hidden" name="periode_id" value="{{ $periode->id }}">
-                        <input type="hidden" name="redirect_to" value="dashboard">
-
-                        {{-- Pilih Supervisor --}}
-                        <div class="mb-5">
-                            <label for="penilai_id_dashboard" class="block text-sm font-bold mb-1.5" style="color: var(--color-navy-900);">
-                                Pilih Supervisor Penilai <span class="text-red-600">*</span>
-                            </label>
-                            <select name="penilai_id" id="penilai_id_dashboard" required
-                                class="form-input w-full sm:w-96 text-sm @error('penilai_id') border-red-500 @enderror">
-                                <option value="">— Pilih supervisor —</option>
-                                @foreach($supervisors as $spv)
-                                    <option value="{{ $spv->id }}" {{ old('penilai_id') == $spv->id ? 'selected' : '' }}>
-                                        {{ $spv->nama }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('penilai_id')
-                                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        {{-- Daftar Guru --}}
-                        <div class="mb-5">
-                            <div class="flex items-center justify-between mb-2">
-                                <label class="text-sm font-bold" style="color: var(--color-navy-900);">
-                                    Pilih Guru <span class="text-red-600">*</span>
-                                </label>
-                                <label class="flex items-center gap-2 text-xs font-semibold text-gray-600 cursor-pointer select-none">
-                                    <input type="checkbox" x-model="pilihSemua"
-                                        @change="$el.closest('form').querySelectorAll('input[name=\'guru_ids[]\']').forEach(cb => cb.checked = pilihSemua)"
-                                        class="rounded border-gray-300">
-                                    Pilih Semua
-                                </label>
-                            </div>
-                            @error('guru_ids')
-                                <p class="text-xs text-red-600 mb-2">{{ $message }}</p>
-                            @enderror
-                            <div class="border rounded-xl overflow-hidden" style="border-color: var(--color-border);">
-                                <div class="divide-y max-h-72 overflow-y-auto" style="border-color: var(--color-border);">
-                                    @foreach($guruBelumList as $guru)
-                                        <label class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors">
-                                            <input type="checkbox" name="guru_ids[]" value="{{ $guru->id }}"
-                                                {{ in_array($guru->id, old('guru_ids', [])) ? 'checked' : '' }}
-                                                class="rounded border-gray-300 shrink-0">
-                                            <div class="min-w-0">
-                                                <p class="text-sm font-semibold text-gray-900 truncate">{{ $guru->nama }}</p>
-                                                <p class="text-xs text-gray-500">{{ $guru->username }}{{ $guru->nip ? ' · NIP: ' . $guru->nip : '' }}</p>
-                                            </div>
-                                        </label>
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center gap-3 pt-3 border-t flex-wrap" style="border-color: var(--color-border);">
-                            <x-button variant="tambah" type="submit" class="min-h-[44px]">
-                                Simpan Penugasan
-                            </x-button>
-                            <x-button variant="outline" :href="route('admin.penugasan.index', ['kode' => $sekolah->kode, 'periode_id' => $periode->id])" class="min-h-[44px]">
-                                Kelola Penugasan Lengkap →
-                            </x-button>
-                        </div>
-                    </form>
-                </x-card>
-            </div>
-        @elseif($guruBelumList->isEmpty() && $supervisors->isNotEmpty())
-            <div id="daftar-guru-supervisor" class="mb-8 scroll-mt-20">
-                <x-card class="p-5 border flex items-center gap-4" style="border-color: var(--color-border);">
-                    <span class="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 shadow-2xs" style="background-color: var(--color-action-green);">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                        </svg>
-                    </span>
-                    <div>
-                        <p class="text-sm font-bold text-emerald-800">Seluruh guru sudah memiliki penilai</p>
-                        <p class="text-xs text-gray-500 mt-0.5">Semua guru aktif pada periode {{ $periode->nama }} telah dipetakan ke supervisor.</p>
-                    </div>
-                </x-card>
-            </div>
-        @endif
 
         {{-- 4. REKAPITULASI STATUS SELURUH INSTRUMEN PENILAIAN --}}
         <div class="mb-8">

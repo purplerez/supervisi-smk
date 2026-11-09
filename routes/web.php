@@ -169,6 +169,8 @@ Route::prefix('s/{kode}')->middleware(['tenant'])->group(function () {
             Route::patch('/penugasan/{penugasan}/penilai', [PenugasanController::class, 'updatePenilai'])->name('penugasan.update-penilai');
             Route::delete('/penugasan/{penugasan}', [PenugasanController::class, 'destroy'])->name('penugasan.destroy');
             Route::get('/penugasan/belum-dinilai', [PenugasanController::class, 'belumPunyaPenilai'])->name('penugasan.belum-dinilai');
+            Route::get('/penugasan/daftarkan', [PenugasanController::class, 'formDaftarkan'])->name('penugasan.daftarkan');
+            Route::post('/penugasan/daftarkan', [PenugasanController::class, 'storeDaftarkan'])->name('penugasan.daftarkan.store');
             Route::patch('/penilaian/{penilaian}/buka-kunci', [PenugasanController::class, 'bukaKunciPenilaian'])->name('penilaian.buka-kunci');
 
             // Penerbitan & Unduh Surat Tugas Supervisor (DOCX)
