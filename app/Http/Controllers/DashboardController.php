@@ -2,21 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Penilaian;
 use App\Models\Penugasan;
 use App\Models\Periode;
 use App\Models\Sekolah;
 use App\Models\User;
-use App\Services\PeriodeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function __construct(
-        private readonly PeriodeService $periodeService,
-    ) {}
-
     /**
      * Halaman Dasbor Admin Sekolah.
      */
@@ -37,42 +33,81 @@ class DashboardController extends Controller
             $periode = Periode::where('status', 'aktif')->first() ?: $semuaPeriode->first();
         }
 
-        $supervisors = User::where('aktif', true)
-            ->whereHas('roles', fn ($q) => $q->where('role', 'supervisor'))
-            ->orderBy('nama', 'asc')
-            ->get();
-
-        $guruBelum = collect();
-        $penugasanTerbaru = collect();
-        $totalPenugasan = 0;
-
-        if ($periode) {
-            $guruBelum = $this->periodeService->guruBelumPunyaPenilai($periode);
-            $totalPenugasan = Penugasan::where('periode_id', $periode->id)->count();
-            $penugasanTerbaru = Penugasan::where('periode_id', $periode->id)
-                ->with(['guru', 'penilai'])
-                ->orderByDesc('id')
-                ->limit(5)
-                ->get();
-        }
-
         $totalGuruAktif = User::where('aktif', true)
             ->whereHas('roles', fn ($q) => $q->where('role', 'guru'))
             ->count();
 
-        $totalSupervisorAktif = $supervisors->count();
+        $totalSupervisorAktif = User::where('aktif', true)
+            ->whereHas('roles', fn ($q) => $q->where('role', 'supervisor'))
+            ->count();
+
+        $totalPenugasan = 0;
+        $totalGuruBelum = 0;
+        $totalSelesai = 0;
+        $totalSedangBerjalan = 0;
+        $persenKetuntasan = 0;
+        $persenPenugasan = 0;
+        $rekapPenilaian = [
+            'final' => 0,
+            'draft' => 0,
+            'direvisi' => 0,
+            'belum' => 0,
+            'total' => 0,
+        ];
+
+        if ($periode) {
+            $semuaPenugasan = Penugasan::where('periode_id', $periode->id)
+                ->with('penilaian')
+                ->get();
+
+            $totalPenugasan = $semuaPenugasan->count();
+
+            // Hitung guru aktif yang belum ditugaskan tanpa memuat daftar model
+            $totalGuruBelum = User::where('aktif', true)
+                ->whereHas('roles', fn ($q) => $q->where('role', 'guru'))
+                ->whereDoesntHave('penugasanSebagaiGuru', fn ($q) => $q->where('periode_id', $periode->id))
+                ->count();
+
+            if ($totalGuruAktif > 0) {
+                $persenPenugasan = min(100, (int) round(($totalPenugasan / $totalGuruAktif) * 100));
+            }
+
+            // Selesai = penugasan yang seluruh baris penilaiannya sudah final
+            $totalSelesai = $semuaPenugasan->filter(function ($p) {
+                return $p->penilaian->isNotEmpty() && $p->penilaian->where('status', 'final')->count() === $p->penilaian->count();
+            })->count();
+
+            $totalSedangBerjalan = $totalPenugasan - $totalSelesai;
+
+            if ($totalPenugasan > 0) {
+                $persenKetuntasan = (int) round(($totalSelesai / $totalPenugasan) * 100);
+            }
+
+            // Rekap status seluruh penilaian pada periode ini
+            $penilaianSemua = Penilaian::whereHas('penugasan', fn ($q) => $q->where('periode_id', $periode->id))->get();
+            $rekapPenilaian = [
+                'final' => $penilaianSemua->where('status', 'final')->count(),
+                'draft' => $penilaianSemua->where('status', 'draft')->count(),
+                'direvisi' => $penilaianSemua->where('status', 'direvisi')->count(),
+                'belum' => $penilaianSemua->where('status', 'belum')->count(),
+                'total' => $penilaianSemua->count(),
+            ];
+        }
 
         return view('dashboard.admin', [
             'sekolah' => $sekolah,
             'user' => Auth::user(),
             'periode' => $periode,
             'semuaPeriode' => $semuaPeriode,
-            'supervisors' => $supervisors,
-            'guruBelum' => $guruBelum,
-            'totalPenugasan' => $totalPenugasan,
             'totalGuruAktif' => $totalGuruAktif,
             'totalSupervisorAktif' => $totalSupervisorAktif,
-            'penugasanTerbaru' => $penugasanTerbaru,
+            'totalPenugasan' => $totalPenugasan,
+            'totalGuruBelum' => $totalGuruBelum,
+            'totalSelesai' => $totalSelesai,
+            'totalSedangBerjalan' => $totalSedangBerjalan,
+            'persenKetuntasan' => $persenKetuntasan,
+            'persenPenugasan' => $persenPenugasan,
+            'rekapPenilaian' => $rekapPenilaian,
         ]);
     }
 
