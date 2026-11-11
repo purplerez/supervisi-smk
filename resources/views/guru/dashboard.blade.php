@@ -328,7 +328,7 @@
                         $adaTerkunci = $penilaianTahap->contains(fn($p) => $p['penilaian'] ? $p['penilaian']->isTerkunciPrasyarat() : false);
                     @endphp
 
-                    <div class="p-5 rounded-2xl border {{ $semuaFinal ? 'bg-white border-emerald-200 shadow-xs' : ($adaTerkunci ? 'bg-slate-50/60 border-slate-200 opacity-90' : 'bg-white border-slate-100 hover:border-slate-300 shadow-xs') }} transition-all duration-150">
+                    <div class="p-5 sm:p-6 rounded-2xl border {{ $semuaFinal ? 'bg-white border-emerald-200 shadow-xs' : ($adaTerkunci ? 'bg-slate-50/60 border-slate-200 opacity-90' : 'bg-white border-slate-100 hover:border-slate-300 shadow-xs') }} transition-all duration-150">
                         {{-- Header Tahap --}}
                         <div class="flex items-start gap-4 mb-3">
                             <div
@@ -387,34 +387,34 @@
                                     $guruSudahKirim = $penilaianItem ? $penilaianItem->isGuruSudahSubmit() : false;
                                 @endphp
 
-                                <div class="p-3.5 rounded-xl border {{ $penilaianItem?->isFinal() ? 'bg-emerald-50/40 border-emerald-200' : ($isTerkunci ? 'bg-slate-50 border-slate-200' : 'bg-neutral-50/70 border-neutral-200') }} flex flex-col md:flex-row md:items-center justify-between gap-3">
+                                <div class="p-4 sm:p-5 rounded-xl border {{ $penilaianItem?->isFinal() ? 'bg-emerald-50/40 border-emerald-200' : ($isTerkunci ? 'bg-slate-50 border-slate-200' : 'bg-neutral-50/70 border-neutral-200') }} flex flex-col md:flex-row md:items-center justify-between gap-4">
                                     {{-- Info Instrumen --}}
-                                    <div class="flex-1">
-                                        <div class="flex flex-wrap items-center gap-2">
-                                            <span class="text-xs font-bold text-navy-900">
+                                    <div class="flex-1 min-w-0 space-y-2">
+                                        <div class="flex flex-wrap items-center gap-2.5">
+                                            <span class="text-sm font-bold text-navy-900">
                                                 {{ $metaItem['label'] }}
                                             </span>
 
                                             {{-- Badge Status --}}
                                             @if($status === 'final')
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
                                                     Final
                                                 </span>
                                             @elseif($status === 'direvisi')
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
                                                     Sedang direvisi
                                                 </span>
                                             @elseif($status === 'draft')
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
                                                     Sedang dinilai @if($isDiisiGuru && $guruSudahKirim) (Terkirim) @endif
                                                 </span>
                                             @elseif($isTerkunci)
-                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-200 text-slate-700">
-                                                    <svg class="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                                                    Terkunci (Selesaikan instrumen sebelumnya)
+                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-200 text-slate-700">
+                                                    <svg class="w-3 h-3 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                                                    <span>Terkunci (Selesaikan instrumen sebelumnya)</span>
                                                 </span>
                                             @else
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
                                                     Belum dinilai
                                                 </span>
                                             @endif
@@ -422,20 +422,22 @@
 
                                         {{-- Jadwal Observasi jika ada --}}
                                         @if($jadwalItem && $jadwalItem->tanggal)
-                                            <div class="inline-flex items-center gap-1.5 mt-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-blue-50/70 text-blue-900 border border-blue-100">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+                                            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-blue-50/70 text-blue-900 border border-blue-100">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 20 20" fill="currentColor" class="shrink-0">
                                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
                                                 </svg>
-                                                Jadwal: {{ $jadwalItem->tanggal->locale('id')->isoFormat('dddd, D MMMM Y') }}
-                                                ({{ substr($jadwalItem->jam_mulai, 0, 5) }} &ndash; {{ substr($jadwalItem->jam_selesai, 0, 5) }} WIB)
+                                                <span>
+                                                    Jadwal: {{ $jadwalItem->tanggal->locale('id')->isoFormat('dddd, D MMMM Y') }}
+                                                    ({{ substr($jadwalItem->jam_mulai, 0, 5) }} &ndash; {{ substr($jadwalItem->jam_selesai, 0, 5) }} WIB)
+                                                </span>
                                             </div>
                                         @endif
                                     </div>
 
                                     {{-- Aksi / Skor --}}
-                                    <div class="md:text-right shrink-0 flex flex-col md:items-end justify-center gap-1.5">
+                                    <div class="md:text-right shrink-0 flex flex-col md:items-end justify-center gap-2 md:pl-4">
                                         @if($status === 'final')
-                                            <div class="flex items-center md:justify-end gap-2">
+                                            <div class="flex items-center md:justify-end gap-2.5">
                                                 @if($penilaianItem->isKuantitatif())
                                                     <div class="flex items-baseline gap-1">
                                                         <span class="text-xs font-semibold text-gray-500">Nilai:</span>
@@ -443,38 +445,38 @@
                                                             {{ number_format($penilaianItem->nilai, 2, ',', '.') }}
                                                         </span>
                                                     </div>
-                                                    <div class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-navy-50 text-navy-900 border border-navy-200">
+                                                    <div class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-navy-50 text-navy-900 border border-navy-200">
                                                         Predikat: {{ $penilaianItem->predikat ?? '-' }}
                                                     </div>
                                                 @else
-                                                    <div class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800">
+                                                    <div class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800">
                                                         Selesai
                                                     </div>
                                                 @endif
                                             </div>
-                                            <div class="flex items-center md:justify-end gap-2.5">
+                                            <div class="flex items-center md:justify-end gap-3">
                                                 @if($isDiisiGuru)
                                                     <a href="{{ route('guru.penilaian.show', ['kode' => $sekolah->kode, 'penilaian' => $penilaianItem]) }}"
-                                                       class="text-xs font-semibold text-navy-700 hover:text-navy-900 hover:underline">
+                                                       class="text-xs font-semibold text-navy-700 hover:text-navy-900 hover:underline px-1 py-0.5">
                                                         Lihat Isian
                                                     </a>
                                                 @endif
                                                 <a href="{{ route('penilaian.cetak-pdf', ['kode' => $sekolah->kode, 'penilaian' => $penilaianItem]) }}"
                                                    target="_blank"
-                                                   class="inline-flex items-center gap-1 text-xs font-semibold text-navy-900 hover:text-navy-700 underline focus:ring-2 focus:ring-orange-500 rounded">
-                                                    <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                                   class="inline-flex items-center gap-1 text-xs font-semibold text-navy-900 hover:text-navy-700 underline focus:ring-2 focus:ring-orange-500 rounded px-1 py-0.5">
+                                                    <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 20 20" fill="currentColor">
                                                         <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm2 10a1 1 0 10-2 0v3a1 1 0 102 0v-3zm2-3a1 1 0 011 1v5a1 1 0 11-2 0v-5a1 1 0 011-1zm4 4a1 1 0 10-2 0v2a1 1 0 102 0v-2z" clip-rule="evenodd" />
                                                     </svg>
-                                                    Cetak PDF
+                                                    <span>Cetak PDF</span>
                                                 </a>
                                             </div>
                                         @elseif($isTerkunci)
-                                            <span class="text-xs font-medium text-slate-400 italic block">
+                                            <span class="text-xs font-medium text-slate-500 italic block pr-1">
                                                 Terkunci oleh prasyarat
                                             </span>
                                         @elseif($isDiisiGuru)
                                             <a href="{{ route('guru.penilaian.show', ['kode' => $sekolah->kode, 'penilaian' => $penilaianItem]) }}"
-                                               class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white transition min-h-[36px] flex items-center gap-1.5 shadow-xs
+                                               class="px-4 py-2 rounded-xl text-xs font-bold text-white transition min-h-[40px] flex items-center gap-1.5 shadow-xs
                                                       {{ $guruSudahKirim ? 'bg-navy-900 hover:bg-navy-800' : 'bg-[#2E7D32] hover:bg-[#256628]' }}">
                                                 @if($guruSudahKirim)
                                                     <span>Lihat / Perbarui Isian</span>
@@ -485,7 +487,7 @@
                                                 @endif
                                             </a>
                                         @else
-                                            <span class="text-xs font-medium text-amber-700 italic block">
+                                            <span class="text-xs font-medium text-amber-700 italic block pr-1">
                                                 Dinilai langsung oleh Supervisor
                                             </span>
                                         @endif
