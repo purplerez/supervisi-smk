@@ -65,13 +65,13 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             // Untuk rute tenant, coba extract kode sekolah dari URL
-            if (preg_match('#^s/([^/]+)#', $request->path(), $m)) {
+            if (preg_match('~^s/([^/]+)~', $request->path(), $m)) {
                 return redirect()->route('sekolah.login', ['kode' => $m[1]]);
             }
 
             // Coba extract dari referer (misal Livewire / AJAX request)
-            $referer = $request->headers->get('referer', '');
-            if (preg_match('#/s/([^/?#]+)#', $referer, $m)) {
+            $referer = (string) $request->headers->get('referer', '');
+            if (preg_match('~/s/([^/?#]+)~', $referer, $m)) {
                 return redirect()->route('sekolah.login', ['kode' => $m[1]]);
             }
 

@@ -85,78 +85,53 @@
             x-data="{
                 cariGuru: '',
                 hanyaDipilih: false,
-                selectedIds: {{ json_encode(array_map('strval', old('guru_ids', []))) }},
+                selectedIds: {{ json_encode(array_map('strval', (array) old('guru_ids', []))) }},
                 pilihSemua: false,
-                semuaGuru: @js($guruBelum->map(fn($g) => [
-                    'id' => (string) $g->id,
-                    'nama' => strtolower($g->nama),
-                    'username' => strtolower($g->username ?? ''),
-                    'nip' => strtolower($g->nip ?? ''),
-                    'nuptk' => strtolower($g->nuptk ?? ''),
-                ])->values()),
 
-                isChecked(id) {
+                isSelected(id) {
                     return this.selectedIds.includes(String(id));
                 },
 
-                toggleGuru(id) {
-                    const idStr = String(id);
-                    if (this.selectedIds.includes(idStr)) {
-                        this.selectedIds = this.selectedIds.filter(i => i !== idStr);
-                    } else {
-                        this.selectedIds.push(idStr);
+                isMatch(el) {
+                    if (!el || !el.dataset) return true;
+                    if (this.hanyaDipilih && !this.selectedIds.includes(String(el.dataset.id))) {
+                        return false;
                     }
-                    this.updatePilihSemua();
-                },
-
-                getVisibleIds() {
-                    const keyword = this.cariGuru.toLowerCase().trim();
-                    return this.semuaGuru
-                        .filter(g => {
-                            const matchKeyword = !keyword
-                                || g.nama.includes(keyword)
-                                || g.username.includes(keyword)
-                                || g.nip.includes(keyword)
-                                || g.nuptk.includes(keyword);
-                            const matchHanyaDipilih = !this.hanyaDipilih || this.selectedIds.includes(String(g.id));
-                            return matchKeyword && matchHanyaDipilih;
-                        })
-                        .map(g => String(g.id));
-                },
-
-                updatePilihSemua() {
-                    const visible = this.getVisibleIds();
-                    this.pilihSemua = visible.length > 0 && visible.every(id => this.selectedIds.includes(id));
+                    if (!this.cariGuru) {
+                        return true;
+                    }
+                    return (el.dataset.search || '').includes(this.cariGuru.toLowerCase().trim());
                 },
 
                 togglePilihSemua() {
-                    const visible = this.getVisibleIds();
-                    if (this.pilihSemua) {
-                        visible.forEach(id => {
-                            if (!this.selectedIds.includes(id)) {
-                                this.selectedIds.push(id);
+                    const q = this.cariGuru.toLowerCase().trim();
+                    const rows = this.$el.querySelectorAll('.guru-row');
+                    rows.forEach(el => {
+                        const matchSearch = !q || (el.dataset.search || '').includes(q);
+                        const matchSelected = !this.hanyaDipilih || this.selectedIds.includes(String(el.dataset.id));
+                        if (matchSearch && matchSelected) {
+                            const id = String(el.dataset.id);
+                            if (this.pilihSemua) {
+                                if (!this.selectedIds.includes(id)) {
+                                    this.selectedIds.push(id);
+                                }
+                            } else {
+                                this.selectedIds = this.selectedIds.filter(i => i !== id);
                             }
-                        });
-                    } else {
-                        this.selectedIds = this.selectedIds.filter(id => !visible.includes(id));
-                    }
+                        }
+                    });
                 },
 
-                isVisible(guru) {
-                    const keyword = this.cariGuru.toLowerCase().trim();
-                    const nama = (guru.nama || '').toLowerCase();
-                    const username = (guru.username || '').toLowerCase();
-                    const nip = (guru.nip || '').toLowerCase();
-                    const nuptk = (guru.nuptk || '').toLowerCase();
-
-                    const matchKeyword = !keyword
-                        || nama.includes(keyword)
-                        || username.includes(keyword)
-                        || nip.includes(keyword)
-                        || nuptk.includes(keyword);
-
-                    const matchHanyaDipilih = !this.hanyaDipilih || this.selectedIds.includes(String(guru.id));
-                    return matchKeyword && matchHanyaDipilih;
+                hasVisibleRow() {
+                    if (!this.cariGuru && !this.hanyaDipilih) return true;
+                    const q = this.cariGuru.toLowerCase().trim();
+                    const rows = this.$el.querySelectorAll('.guru-row');
+                    for (let el of rows) {
+                        const matchSearch = !q || (el.dataset.search || '').includes(q);
+                        const matchSelected = !this.hanyaDipilih || this.selectedIds.includes(String(el.dataset.id));
+                        if (matchSearch && matchSelected) return true;
+                    }
+                    return false;
                 }
             }"
         >
@@ -203,7 +178,7 @@
                             <button
                                 type="button"
                                 x-show="selectedIds.length > 0"
-                                @click="hanyaDipilih = !hanyaDipilih; updatePilihSemua()"
+                                @click="hanyaDipilih = !hanyaDipilih"
                                 class="inline-flex items-center px-2.5 py-1 rounded-full border text-xs font-semibold transition-colors"
                                 :class="hanyaDipilih ? 'bg-blue-900 text-white border-blue-900' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'"
                             >
@@ -222,7 +197,6 @@
                             id="cari_guru_input"
                             type="text"
                             x-model="cariGuru"
-                            @input="updatePilihSemua()"
                             placeholder="Ketik nama guru, NIP, atau username untuk memfilter..."
                             class="form-input w-full pl-9 pr-9 text-sm"
                             autocomplete="off"
@@ -230,7 +204,7 @@
                         <button
                             type="button"
                             x-show="cariGuru.length > 0"
-                            @click="cariGuru = ''; updatePilihSemua()"
+                            @click="cariGuru = ''"
                             class="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-gray-600"
                             title="Bersihkan pencarian"
                         >
@@ -255,22 +229,23 @@
                                 class="rounded border-gray-300 w-4 h-4 text-navy-900 focus:ring-orange-500">
                             <span class="text-xs font-bold" style="color: var(--color-navy-900);">Pilih Semua yang Terlihat</span>
                         </label>
-                        <span class="text-xs text-gray-500" x-text="getVisibleIds().length + ' guru ditampilkan'"></span>
+                        <span class="text-xs text-gray-500">{{ $guruBelum->count() }} guru siap didaftarkan</span>
                     </div>
 
                     {{-- Baris Guru --}}
                     <div class="divide-y max-h-80 overflow-y-auto" style="border-color: var(--color-border);">
                         @foreach($guruBelum as $guru)
                             <label
-                                x-show="isVisible({{ json_encode(['id' => $guru->id, 'nama' => $guru->nama, 'username' => $guru->username ?? '', 'nip' => $guru->nip ?? '', 'nuptk' => $guru->nuptk ?? '']) }})"
-                                class="flex items-center gap-3 px-4 py-3.5 hover:bg-blue-50/60 cursor-pointer transition-colors"
-                                :class="isChecked({{ $guru->id }}) ? 'bg-blue-50/40' : ''"
+                                data-id="{{ $guru->id }}"
+                                data-search="{{ strtolower($guru->nama . ' ' . ($guru->username ?? '') . ' ' . ($guru->nip ?? '') . ' ' . ($guru->nuptk ?? '')) }}"
+                                x-show="isMatch($el)"
+                                class="guru-row flex items-center gap-3 px-4 py-3.5 hover:bg-blue-50/60 cursor-pointer transition-colors"
+                                :class="isSelected('{{ $guru->id }}') ? 'bg-blue-50/40' : ''"
                             >
                                 <input type="checkbox"
                                     name="guru_ids[]"
                                     value="{{ $guru->id }}"
                                     x-model="selectedIds"
-                                    @change="updatePilihSemua()"
                                     class="rounded border-gray-300 w-4 h-4 shrink-0 text-navy-900 focus:ring-orange-500">
                                 <div class="min-w-0 flex-1">
                                     <p class="text-sm font-semibold text-gray-900 truncate">{{ $guru->nama }}</p>
@@ -280,7 +255,7 @@
                                         @if($guru->nuptk) · NUPTK: {{ $guru->nuptk }} @endif
                                     </p>
                                 </div>
-                                <span x-show="isChecked({{ $guru->id }})"
+                                <span x-show="isSelected('{{ $guru->id }}')"
                                     class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-full text-white text-xs"
                                     style="background-color: var(--color-navy-700);">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 20 20" fill="currentColor">
@@ -291,7 +266,7 @@
                         @endforeach
 
                         {{-- Empty search state --}}
-                        <div x-show="getVisibleIds().length === 0" class="px-4 py-8 text-center text-sm text-gray-500">
+                        <div x-show="!hasVisibleRow()" class="px-4 py-8 text-center text-sm text-gray-500">
                             Tidak ada guru yang sesuai dengan pencarian atau filter.
                         </div>
                     </div>
@@ -303,7 +278,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 00-6 6h12a6 6 0 00-6-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"/>
                         </svg>
-                        Simpan Penugasan (<span x-text="selectedIds.length"></span> guru)
+                        Simpan Penugasan (<span x-text="selectedIds.length">0</span> guru)
                     </x-button>
                     <x-button variant="outline" href="{{ route('admin.penugasan.index', ['kode' => $sekolah->kode, 'periode_id' => $periode->id]) }}" class="min-h-[44px]">
                         Batal
